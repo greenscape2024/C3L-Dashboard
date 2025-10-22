@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>C3L SYSTEM DASHBOARD v7.1-PRO — Protected Edition</title>
+<style>
+:root{--bg:#111;--fg:#eee;--card:#1b1b1b;--dim:#888;--accent:#005eff;--accent2:#00c6ff;--ok:#22c55e;--bad:#ef4444}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI", Arial, sans-serif;background:var(--bg);color:var(--fg)}
+header{position:relative;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;padding:14px 20px;text-align:center;font-weight:700}
+nav{display:flex;background:#222;border-bottom:2px solid #333}
+nav button{flex:1;padding:12px;background:#222;color:#cfcfcf;border:0;cursor:pointer;font-weight:600}
+nav button:hover,nav button.active{background:#005eff;color:#fff}
+section{display:none;padding:18px}
+section.active{display:block}
+.card{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 0 8px #0006;margin-bottom:12px}
+.small{color:var(--dim);font-size:12px}
+.status-dot{position:absolute;right:14px;top:12px;display:flex;align-items:center;gap:8px}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--bad);box-shadow:0 0 8px #0007}
+.dot.ok{background:var(--ok)}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#2c2c2c;color:#bbb;font-size:12px}
+.kv{display:grid;grid-template-columns:180px 1fr;gap:6px 10px}
+pre{white-space:pre-wrap;background:#0f0f0f;border:1px solid #262626;border-radius:8px;padding:10px;overflow:auto}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<header>
+  C3L SYSTEM DASHBOARD v7.1-PRO | Protected Edition
+  <span class="status-dot"><span id="onlineDot" class="dot" aria-label="offline"></span><span id="onlineLbl" class="small">Provjera...</span></span>
+</header>
+<nav>
+  <button class="active" onclick="showTab('status')">Status</button>
+  <button onclick="showTab('incidents')">Incidents</button>
+  <button onclick="showTab('capacity')">Capacity</button>
+  <button onclick="showTab('about')">About</button>
+</nav>
+
+<section id="status" class="active">
+  <div class="card" id="statusCard">Loading...</div>
+</section>
+
+<section id="incidents">
+  <div class="card"><ul id="incList"><li>Loading...</li></ul></div>
+</section>
+
+<section id="capacity">
+  <div class="card" id="capCard">Loading...</div>
+</section>
+
+<section id="about">
+  <div class="card">
+    <h3>Kako koristiti (Protected Edition)</h3>
+    <ol class="small">
+      <li>Otvorite URL s tokenom: <code>?key=C3L2025KEY</code> (npr. <code>https://USERNAME.github.io/C3L-Dashboard/?key=C3L2025KEY</code>).</li>
+      <li>Ako je token ispravan, dashboard učitava <code>data/*.json</code>.</li>
+      <li>Status indikator (gore desno) provjerava <code>data/status.json</code> svakih 60 s.</li>
+    </ol>
+  </div>
+</section>
+
+<script>
+// ===== Token zaštita =====
+(function protect(){
+  const params=new URLSearchParams(location.search);
+  const token=params.get('key');
+  const REQUIRED='C3L2025KEY';
+  if(token!==REQUIRED){
+    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh"><div class="card" style="max-width:560px;padding:18px;">\n<h3 style="margin:0 0 6px">Pristup odbijen ❌</h3>\n<p class="small">Nedostaje ili je neispravan pristupni token. Otvorite URL u obliku:<br><code>?key=C3L2025KEY</code></p></div></div>';
+    throw new Error('Access denied');
+  }
+})();
+
+// ===== UI helpers =====
+function showTab(id){document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));document.querySelector(`nav button[onclick="showTab('${id}')"]`).classList.add('active');document.getElementById(id).classList.add('active');}
+
+// ===== Data refresh =====
+async function fetchJSON(p){
+  const r=await fetch(p,{cache:'no-store'});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+
+async function refresh(){
+  try{
+    const [status,cap,inc]=await Promise.all([
+      fetchJSON('data/status.json'),
+      fetchJSON('data/capacity.json'),
+      fetchJSON('data/incidents.json')
+    ]);
+    document.getElementById('statusCard').innerHTML=
+      `<b>Core Engine:</b> ${status.core_engine} <br>
+       <b>Registry:</b> ${status.registry} <br>
+       <b>Automation:</b> ${status.automation} <br>
+       <b>Timestamp:</b> ${status.timestamp}`;
+    document.getElementById('capCard').innerHTML=
+      `<b>Used:</b> ${cap.used}% &nbsp;|&nbsp; <b>Free:</b> ${cap.free}%`;
+    document.getElementById('incList').innerHTML=
+      inc.map(i=>`<li>${i.date} – ${i.event} (${i.status})</li>`).join('');
+    setOnline(true);
+  }catch(e){
+    console.error(e); setOnline(false);
+  }
+}
+
+function setOnline(ok){
+  const dot=document.getElementById('onlineDot');
+  const lbl=document.getElementById('onlineLbl');
+  if(ok){ dot.classList.add('ok'); dot.setAttribute('aria-label','online'); lbl.textContent='Online'; }
+  else{ dot.classList.remove('ok'); dot.setAttribute('aria-label','offline'); lbl.textContent='Offline'; }
+}
+
+// init
+refresh();
+setInterval(refresh, 60000); // 60 s
+</script>
+</body>
+</html>
