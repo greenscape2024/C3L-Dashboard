@@ -1,0 +1,16 @@
+{
+  "module": "C3L_Local_Heartbeat_AutoSync",
+  "version": "1.3",
+  "codename": "LiveConsolePulse",
+  "author": "Project Link / Hrvoje Šajković",
+  "date_commit": "2025-11-04T17:30:00+01:00",
+  "repository": "greenscape2024/C3L-Dashboard",
+  "folder": "/automation/",
+  "description": "Persistent heartbeat and auto-sync agent for OneDrive/GDrive hybrid storage",
+  "files": [
+    "C3L_Local_Heartbeat_AutoSync.ps1",
+    "README_INSTALL.txt"
+  ],
+  "tested_on": "Windows 10/11 - OneDrive bridge",
+  "status": "STABLE"
+}
