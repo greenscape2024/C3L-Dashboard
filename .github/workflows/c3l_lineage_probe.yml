@@ -4,12 +4,13 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - ".c3l/lineage_probe/**"
+      - ".c3l/lineage_probe/request/**"
       - ".github/workflows/c3l_lineage_probe.yml"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+  actions: read
 
 jobs:
   lineage-probe:
@@ -17,6 +18,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Build deterministic lineage payload
         run: |
           mkdir -p lineage_out
@@ -26,9 +28,48 @@ jobs:
             'SCHEMA=CICD_LINEAGE_SCHEMA_v0_1' \
             > lineage_out/lineage_payload.txt
           sha256sum lineage_out/lineage_payload.txt > lineage_out/lineage_payload.sha256
+
       - name: Upload lineage artifact
         uses: actions/upload-artifact@v4
         with:
           name: c3l-lineage-probe
           path: lineage_out/
           retention-days: 30
+
+      - name: Record execution and artifact identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p .c3l/lineage_probe/results
+          PAYLOAD_SHA256="$(sha256sum lineage_out/lineage_payload.txt | awk '{print $1}')"
+          ARTIFACT_JSON=""
+          for i in 1 2 3 4 5; do
+            ARTIFACT_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts" --jq '.artifacts[] | select(.name=="c3l-lineage-probe") | {id,name,digest,expired,size_in_bytes}' | head -n 1 || true)"
+            [ -n "$ARTIFACT_JSON" ] && break
+            sleep 2
+          done
+          ARTIFACT_ID="$(printf '%s' "$ARTIFACT_JSON" | jq -r '.id // "UNKNOWN"')"
+          ARTIFACT_DIGEST="$(printf '%s' "$ARTIFACT_JSON" | jq -r '.digest // "UNKNOWN"')"
+          ARTIFACT_EXPIRED="$(printf '%s' "$ARTIFACT_JSON" | jq -r '.expired // "UNKNOWN"')"
+          ARTIFACT_SIZE="$(printf '%s' "$ARTIFACT_JSON" | jq -r '.size_in_bytes // "UNKNOWN"')"
+          RESULT_FILE=".c3l/lineage_probe/results/run_${GITHUB_RUN_ID}.txt"
+          cat > "$RESULT_FILE" <<EOF
+          REPOSITORY=${GITHUB_REPOSITORY}
+          COMMIT_SHA=${GITHUB_SHA}
+          WORKFLOW_NAME=${GITHUB_WORKFLOW}
+          RUN_ID=${GITHUB_RUN_ID}
+          RUN_ATTEMPT=${GITHUB_RUN_ATTEMPT}
+          RUN_CONCLUSION=success
+          ARTIFACT_ID=${ARTIFACT_ID}
+          ARTIFACT_NAME=c3l-lineage-probe
+          ARTIFACT_DIGEST=${ARTIFACT_DIGEST}
+          ARTIFACT_EXPIRED=${ARTIFACT_EXPIRED}
+          ARTIFACT_SIZE=${ARTIFACT_SIZE}
+          PAYLOAD_SHA256=${PAYLOAD_SHA256}
+          EOF
+          sed -i 's/^          //' "$RESULT_FILE"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$RESULT_FILE"
+          git commit -m "chore: record lineage probe run ${GITHUB_RUN_ID}"
+          git push
