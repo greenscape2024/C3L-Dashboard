@@ -1,0 +1,34 @@
+name: C3L Canonical Lineage Probe
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - ".c3l/lineage_probe/**"
+      - ".github/workflows/c3l_lineage_probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lineage-probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build deterministic lineage payload
+        run: |
+          mkdir -p lineage_out
+          printf '%s\n' \
+            'C3L GitHub-GDrive canonical lineage E2E probe' \
+            'CASE=OPS|C3L|GITHUB_GDRIVE|CANONICAL_LINEAGE_REGISTRY_HARDENING|2026-08-07' \
+            'SCHEMA=CICD_LINEAGE_SCHEMA_v0_1' \
+            > lineage_out/lineage_payload.txt
+          sha256sum lineage_out/lineage_payload.txt > lineage_out/lineage_payload.sha256
+      - name: Upload lineage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: c3l-lineage-probe
+          path: lineage_out/
+          retention-days: 30
