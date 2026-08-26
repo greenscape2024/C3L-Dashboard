@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "artifact": "PRJ-004 Dashboard 3.0 Source Schemas",
+  "version": "1.0",
+  "schemas": {
+    "c3l.dashboard.baseline_integrity.v1": {
+      "required": ["baseline_id", "evaluated_at", "integrity_status", "artifact_sha256"],
+      "properties": {
+        "baseline_id": {"type": "string"},
+        "evaluated_at": {"type": "string", "format": "date-time"},
+        "integrity_status": {"enum": ["PASS", "PASS_WITH_LIMITATION", "FAIL", "UNKNOWN"]},
+        "artifact_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+        "evidence_ref": {"type": "string"}
+      }
+    },
+    "c3l.dashboard.drift.v1": {
+      "required": ["evaluation_id", "evaluated_at", "compared_to_baseline_id", "drift_status"],
+      "properties": {
+        "evaluation_id": {"type": "string"},
+        "evaluated_at": {"type": "string", "format": "date-time"},
+        "compared_to_baseline_id": {"type": "string"},
+        "drift_status": {"enum": ["NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL", "UNKNOWN"]},
+        "evidence_ref": {"type": "string"}
+      }
+    },
+    "c3l.dashboard.auth_session.v1": {
+      "required": ["authenticated", "session_id", "subject_id", "roles", "issued_at", "expires_at", "auth_context_hash"],
+      "properties": {
+        "authenticated": {"const": true},
+        "session_id": {"type": "string", "minLength": 16},
+        "subject_id": {"type": "string"},
+        "roles": {"type": "array", "items": {"enum": ["dashboard_viewer", "dashboard_operator", "dashboard_admin"]}, "minItems": 1},
+        "issued_at": {"type": "string", "format": "date-time"},
+        "expires_at": {"type": "string", "format": "date-time"},
+        "auth_context_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}
+      }
+    },
+    "c3l.dashboard.module_graph.v1": {
+      "required": ["registry_version", "generated_at", "modules", "edges"],
+      "properties": {
+        "registry_version": {"type": "string"},
+        "generated_at": {"type": "string", "format": "date-time"},
+        "modules": {"type": "array"},
+        "edges": {"type": "array"}
+      }
+    },
+    "c3l.dashboard.routing.v1": {
+      "required": ["registry_version", "generated_at", "routes"],
+      "properties": {
+        "registry_version": {"type": "string"},
+        "generated_at": {"type": "string", "format": "date-time"},
+        "routes": {"type": "array"}
+      }
+    },
+    "c3l.dashboard.snapshot.v1": {
+      "required": ["snapshot_id", "created_at", "source_set_hash", "content_hash"],
+      "properties": {
+        "snapshot_id": {"type": "string"},
+        "created_at": {"type": "string", "format": "date-time"},
+        "source_set_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+        "content_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}
+      }
+    },
+    "c3l.dashboard.alerts.v1": {
+      "required": ["alert_id", "source_id", "severity", "state", "created_at", "updated_at", "evidence_ref"],
+      "properties": {
+        "alert_id": {"type": "string"},
+        "source_id": {"type": "string"},
+        "severity": {"enum": ["CRITICAL", "HIGH", "MEDIUM", "INFO"]},
+        "state": {"enum": ["OPEN", "ACKNOWLEDGED", "RESOLVED"]},
+        "created_at": {"type": "string", "format": "date-time"},
+        "updated_at": {"type": "string", "format": "date-time"},
+        "evidence_ref": {"type": "string"}
+      }
+    },
+    "c3l.dashboard.boundary.v1": {
+      "required": ["registry_version", "generated_at", "objects"],
+      "properties": {
+        "registry_version": {"type": "string"},
+        "generated_at": {"type": "string", "format": "date-time"},
+        "objects": {"type": "array"}
+      }
+    },
+    "c3l.dashboard.evaluation_history.v1": {
+      "required": ["evaluation_id", "evaluator_id", "evaluated_at", "outcome", "evidence_refs", "previous_evaluation_id"],
+      "properties": {
+        "evaluation_id": {"type": "string"},
+        "evaluator_id": {"type": "string"},
+        "evaluated_at": {"type": "string", "format": "date-time"},
+        "outcome": {"enum": ["PASS", "PASS_WITH_LIMITATION", "FAIL", "UNKNOWN"]},
+        "evidence_refs": {"type": "array", "items": {"type": "string"}},
+        "previous_evaluation_id": {"type": ["string", "null"]}
+      }
+    },
+    "c3l.lineage_probe.result.v1": {
+      "required": ["REPOSITORY", "COMMIT_SHA", "WORKFLOW_NAME", "RUN_ID", "RUN_CONCLUSION", "ARTIFACT_DIGEST", "PAYLOAD_SHA256"]
+    }
+  }
+}
