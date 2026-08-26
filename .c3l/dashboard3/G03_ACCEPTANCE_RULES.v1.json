@@ -1,0 +1,34 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-03",
+  "artifact": "G03_ACCEPTANCE_RULES",
+  "version": "1.0",
+  "verified_display_rule": {
+    "all_required": [
+      "source_id exists in SOURCE_AUTHORITY_REGISTRY.v1.json",
+      "owner is assigned",
+      "runtime_locator is non-null and exact",
+      "schema_id exists in SOURCE_SCHEMAS.v1.json or is an explicitly external standard schema",
+      "freshness SLA is defined",
+      "readback rule passes against the exact runtime source",
+      "permission boundary is defined",
+      "source timestamp is within freshness SLA when SLA > 0",
+      "evidence reference is retained"
+    ],
+    "otherwise": "UNKNOWN / NOT_PROVEN / STALE / BLOCKED as applicable"
+  },
+  "prohibited_promotions": [
+    "contract-defined source without runtime binding -> VERIFIED",
+    "legacy event -> VERIFIED_ALERT",
+    "authentication success -> SECURITY_VERIFIED",
+    "lineage evidence -> GLOBAL_INTEGRITY_VERIFIED",
+    "missing source -> PASS",
+    "stale source -> LIVE"
+  ],
+  "security_gate": {
+    "legacy_client_shared_secret": "FORBIDDEN",
+    "same_origin_session_contract": "REQUIRED",
+    "backend_session_implementation": "MUST_BE_PROVEN_BEFORE_PRODUCTION",
+    "production_promotion_without_session_readback": "BLOCKED"
+  }
+}
