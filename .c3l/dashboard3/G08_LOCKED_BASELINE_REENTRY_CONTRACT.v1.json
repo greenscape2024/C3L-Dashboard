@@ -1,0 +1,82 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-08",
+  "artifact": "LOCKED_BASELINE_DEVELOPMENT_REENTRY_CONTRACT",
+  "version": "1.0",
+  "status": "LOCKED_REENTRY_CONTRACT",
+  "locked_baseline": {
+    "production_commit_sha": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+    "production_tree_sha": "1f7e6115ba94312693afc95491b39c6fdf6ca172",
+    "baseline_reference_branch": "baseline/prj-004-dashboard-3.0-b7d46b80",
+    "launcher_path": "index.html",
+    "launcher_blob_sha": "72a271328d0ead519c853a2842d6d565463ca994",
+    "g06a_contract_path": ".c3l/dashboard3/G06A_PRODUCTION_ENTRYPOINT_CONTRACT.v1.json",
+    "g06a_contract_blob_sha": "538782a8b4ef1f052b19abf88d93b96403f2ab8b",
+    "production_url": "https://greenscape2024.github.io/C3L-Dashboard/",
+    "runtime_app_id": "c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t",
+    "runtime_url": "https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/",
+    "runtime_version_name": "v11",
+    "runtime_snapshot_version": "1787752423174"
+  },
+  "reentry_rules": {
+    "slice_must_descend_from_locked_baseline": true,
+    "delta_base_must_equal_locked_baseline_sha": true,
+    "candidate_identity_source": "GITHUB_SHA",
+    "baseline_reference_must_resolve_exactly": true,
+    "main_must_not_move_during_unpromoted_slice": true,
+    "direct_production_mutation": "FORBIDDEN",
+    "unknown_or_stale_evidence": "FAIL_CLOSED",
+    "promotion_without_complete_proof": "FORBIDDEN"
+  },
+  "protected_domains": {
+    "SECURITY": [
+      ".c3l/dashboard3/SECURITY_AUTH_CONTRACT.v1.json",
+      ".c3l/dashboard3/AUTH_ADAPTER_INTERFACE.v1.js"
+    ],
+    "AUTHORITY": [
+      ".c3l/dashboard3/SOURCE_AUTHORITY_REGISTRY.v1.json",
+      ".c3l/dashboard3/SOURCE_SCHEMAS.v1.json",
+      ".c3l/dashboard3/RUNTIME_BINDING_STATUS.v1.json"
+    ],
+    "LAUNCHER_RUNTIME_BINDING": [
+      "index.html",
+      ".c3l/dashboard3/G06A_PRODUCTION_ENTRYPOINT_CONTRACT.v1.json"
+    ],
+    "FAIL_CLOSED_ACCEPTANCE": [
+      ".c3l/dashboard3/G03_ACCEPTANCE_RULES.v1.json",
+      ".github/workflows/prj004_g03_candidate_validation.yml",
+      ".github/workflows/prj004_g04_runtime_e2e.yml",
+      ".github/workflows/prj004_g05_final_merge_readiness.yml",
+      ".github/workflows/prj004_g06a_entrypoint_binding.yml"
+    ],
+    "ROLLBACK": [
+      "baseline/prj-004-dashboard-3.0-b7d46b80",
+      "AppDeploy:v11:1787752423174"
+    ]
+  },
+  "mandatory_candidate_proof": {
+    "baseline_ancestry": "PASS",
+    "baseline_reference_exact_match": "PASS",
+    "baseline_launcher_blob_exact_match": "PASS",
+    "baseline_g06a_contract_blob_exact_match": "PASS",
+    "baseline_to_candidate_delta": "EXPLICIT_AND_MACHINE_READABLE",
+    "protected_domain_delta_classification": "REQUIRED",
+    "security_non_degradation": "REQUIRED_PASS",
+    "authority_non_degradation": "REQUIRED_PASS",
+    "launcher_runtime_binding": "REQUIRED_PASS",
+    "anonymous_fail_closed": "REQUIRED_PASS",
+    "hostile_input_containment": "REQUIRED_PASS",
+    "runtime_preflight_9_of_9": "REQUIRED_PASS",
+    "security_negatives": "REQUIRED_PASS",
+    "rollback_anchor_resolvable": "REQUIRED_PASS"
+  },
+  "promotion_contract": {
+    "candidate_status_default": "NOT_PROMOTION_ELIGIBLE",
+    "all_required_proofs_must_be_same_candidate_sha": true,
+    "explicit_merge_authorization_required": true,
+    "automatic_merge": false,
+    "automatic_rollback": false,
+    "post_merge_production_readback_required": true,
+    "new_baseline_lock_required_after_accepted_release": true
+  }
+}
