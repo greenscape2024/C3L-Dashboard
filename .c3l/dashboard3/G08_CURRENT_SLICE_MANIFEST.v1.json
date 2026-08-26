@@ -1,0 +1,30 @@
+{
+  "project_id": "PRJ-004",
+  "contract_version": "1.0",
+  "slice_id": "G08-BOOTSTRAP-001",
+  "slice_type": "CONTROL_BOOTSTRAP",
+  "baseline_sha": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+  "candidate_sha_source": "GITHUB_SHA",
+  "candidate_branch": "prj-004/g08-development-reentry",
+  "candidate_runtime_url": "https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/",
+  "promotion_requested": false,
+  "changed_scope": [
+    "G08 locked-baseline re-entry contract",
+    "development slice manifest schema",
+    "current bootstrap slice manifest",
+    "G08 machine-enforced CI guard"
+  ],
+  "protected_domains_touched": [],
+  "required_proofs": {
+    "baseline_ancestry": "REQUIRED_PASS",
+    "delta": "REQUIRED_PASS",
+    "security": "REQUIRED_PASS",
+    "authority": "REQUIRED_PASS",
+    "launcher_runtime": "REQUIRED_PASS",
+    "anonymous_fail_closed": "REQUIRED_PASS",
+    "hostile_input": "REQUIRED_PASS",
+    "runtime_9_of_9": "REQUIRED_PASS",
+    "security_negatives": "REQUIRED_PASS",
+    "rollback": "REQUIRED_PASS"
+  }
+}
