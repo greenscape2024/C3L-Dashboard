@@ -1,0 +1,63 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-07",
+  "artifact": "POST_RELEASE_BASELINE_LOCK",
+  "version": "1.0",
+  "status": "AUTHORITATIVE_BASELINE_LOCKED",
+  "release_identity": {
+    "accepted_candidate_sha": "ab1db2431fca7133c6e2dc9f6e0d00b83f2f093d",
+    "production_merge_sha": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+    "production_tree_sha": "1f7e6115ba94312693afc95491b39c6fdf6ca172",
+    "launcher_path": "index.html",
+    "launcher_blob_sha": "72a271328d0ead519c853a2842d6d565463ca994",
+    "g06a_contract_path": ".c3l/dashboard3/G06A_PRODUCTION_ENTRYPOINT_CONTRACT.v1.json",
+    "g06a_contract_blob_sha": "538782a8b4ef1f052b19abf88d93b96403f2ab8b"
+  },
+  "production_binding": {
+    "public_entrypoint_url": "https://greenscape2024.github.io/C3L-Dashboard/",
+    "public_entrypoint_host": "GITHUB_PAGES",
+    "pages_deployment_release_sha": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+    "runtime_host": "APPDEPLOY",
+    "runtime_app_id": "c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t",
+    "runtime_url": "https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/",
+    "runtime_version_name": "v11",
+    "runtime_snapshot_version": "1787752423174"
+  },
+  "baseline_reference": {
+    "reference_branch": "baseline/prj-004-dashboard-3.0-b7d46b80",
+    "expected_commit_sha": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+    "authority": "EXACT_COMMIT_SHA",
+    "branch_role": "HUMAN_READABLE_POINTER_ONLY",
+    "mutation_policy": "DO_NOT_MOVE_OR_REWRITE",
+    "mismatch_policy": "FAIL_CLOSED_AND_REOPEN_G07"
+  },
+  "fresh_post_release_integrity": {
+    "main_head_matches_release_sha": true,
+    "launcher_blob_matches_release": true,
+    "g06a_binding_matches_release": true,
+    "runtime_status": "READY",
+    "runtime_frontend_errors": 0,
+    "runtime_backend_errors": 0,
+    "runtime_network_errors": 0,
+    "public_entrypoint_readback": "PASS",
+    "anonymous_access": "ACCESS_DENIED_FAIL_CLOSED",
+    "runtime_preflight": "PASS_9_OF_9",
+    "security_negatives": "PASS",
+    "hostile_query_hash_entrypoint": "CONTAINED_FAIL_CLOSED"
+  },
+  "security_invariants": {
+    "client_side_secret": "FORBIDDEN",
+    "query_string_credentials": "FORBIDDEN",
+    "query_forwarding": false,
+    "hash_forwarding": false,
+    "dynamic_open_redirect": false,
+    "anonymous_privileged_state": "FORBIDDEN",
+    "c2_mutation_without_separate_authorization": "FORBIDDEN"
+  },
+  "baseline_semantics": {
+    "this_release_is_authoritative_for_future_dashboard_3_0_changes": true,
+    "future_changes_must_not_redefine_this_baseline": true,
+    "unknown_or_stale_evidence_must_not_be_treated_as_pass": true,
+    "g07_evidence_branch_changes_production": false
+  }
+}
