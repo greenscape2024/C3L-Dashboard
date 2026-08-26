@@ -1,0 +1,40 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-06A",
+  "artifact": "PRODUCTION_ENTRYPOINT_CONTRACT",
+  "version": "1.0",
+  "status": "LOCK_CANDIDATE",
+  "hosting_model": {
+    "public_entrypoint_host": "GITHUB_PAGES",
+    "public_entrypoint_role": "FIXED_HTTPS_LAUNCHER_ONLY",
+    "runtime_host": "APPDEPLOY",
+    "runtime_target": "https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/",
+    "runtime_app_id": "c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t"
+  },
+  "security_invariants": {
+    "client_side_secret": "FORBIDDEN",
+    "query_string_credentials": "FORBIDDEN",
+    "query_forwarding": false,
+    "hash_forwarding": false,
+    "dynamic_redirect_target": false,
+    "runtime_target_must_be_fixed_https": true,
+    "auth_responsibility": "APPDEPLOY_RUNTIME_ONLY",
+    "authority_data_responsibility": "APPDEPLOY_RUNTIME_ONLY",
+    "github_pages_must_not_call_session_backend": true,
+    "github_pages_must_not_read_authority_data": true
+  },
+  "launcher_contract": {
+    "automatic_navigation": "window.location.replace(FIXED_PRODUCTION_RUNTIME)",
+    "manual_fallback_link": "REQUIRED",
+    "manual_fallback_rel": "noopener noreferrer",
+    "source_query_or_hash_must_not_be_copied": true,
+    "open_redirect_parameters": "FORBIDDEN"
+  },
+  "acceptance": {
+    "g03_regression": "REQUIRED_PASS",
+    "g04_regression": "REQUIRED_PASS",
+    "g05_regression": "REQUIRED_PASS",
+    "g06a_public_entry_browser_flow": "REQUIRED_PASS",
+    "production_main_merge_before_all_pass": false
+  }
+}
