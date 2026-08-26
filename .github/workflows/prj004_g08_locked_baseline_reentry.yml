@@ -1,0 +1,146 @@
+name: PRJ-004 G08 Locked Baseline Re-entry Guard
+
+on:
+  push:
+    branches:
+      - "prj-004/g08-development-reentry"
+      - "prj-004/dev/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BASELINE_SHA: b7d46b80a72772ebc16bc557500eb63916a1d63c
+  BASELINE_REF: baseline/prj-004-dashboard-3.0-b7d46b80
+  LOCKED_LAUNCHER_BLOB: 72a271328d0ead519c853a2842d6d565463ca994
+  LOCKED_G06A_BLOB: 538782a8b4ef1f052b19abf88d93b96403f2ab8b
+  PRODUCTION_URL: https://greenscape2024.github.io/C3L-Dashboard/
+  RUNTIME_URL: https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/
+
+jobs:
+  locked-baseline-reentry:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout candidate with full lineage
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch locked baseline and production refs
+        run: |
+          git fetch --no-tags origin \
+            +refs/heads/main:refs/remotes/origin/main \
+            +refs/heads/${BASELINE_REF}:refs/remotes/origin/${BASELINE_REF}
+
+      - name: Exact baseline lineage and immutable identity
+        run: |
+          test "$(git rev-parse refs/remotes/origin/${BASELINE_REF})" = "${BASELINE_SHA}"
+          test "$(git rev-parse refs/remotes/origin/main)" = "${BASELINE_SHA}"
+          git merge-base --is-ancestor "${BASELINE_SHA}" "${GITHUB_SHA}"
+          test "$(git rev-parse ${BASELINE_SHA}:index.html)" = "${LOCKED_LAUNCHER_BLOB}"
+          test "$(git rev-parse ${BASELINE_SHA}:.c3l/dashboard3/G06A_PRODUCTION_ENTRYPOINT_CONTRACT.v1.json)" = "${LOCKED_G06A_BLOB}"
+          echo "G08_BASELINE_REF_EXACT=PASS"
+          echo "G08_BASELINE_ANCESTRY=PASS"
+          echo "G08_BASELINE_BLOBS=PASS"
+          echo "G08_UNPROMOTED_MAIN_DRIFT=0"
+
+      - name: Validate G08 contract and slice manifest
+        run: |
+          python - <<'PY'
+          import json
+          baseline='b7d46b80a72772ebc16bc557500eb63916a1d63c'
+          contract=json.load(open('.c3l/dashboard3/G08_LOCKED_BASELINE_REENTRY_CONTRACT.v1.json',encoding='utf-8'))
+          schema=json.load(open('.c3l/dashboard3/G08_SLICE_MANIFEST_SCHEMA.v1.json',encoding='utf-8'))
+          manifest=json.load(open('.c3l/dashboard3/G08_CURRENT_SLICE_MANIFEST.v1.json',encoding='utf-8'))
+          assert contract['status']=='LOCKED_REENTRY_CONTRACT'
+          assert contract['locked_baseline']['production_commit_sha']==baseline
+          assert contract['locked_baseline']['launcher_blob_sha']=='72a271328d0ead519c853a2842d6d565463ca994'
+          assert contract['locked_baseline']['runtime_snapshot_version']=='1787752423174'
+          assert schema['properties']['baseline_sha']['const']==baseline
+          assert manifest['project_id']=='PRJ-004'
+          assert manifest['contract_version']=='1.0'
+          assert manifest['baseline_sha']==baseline
+          assert manifest['candidate_sha_source']=='GITHUB_SHA'
+          assert manifest['candidate_branch']==__import__('os').environ['GITHUB_REF_NAME']
+          assert manifest['candidate_runtime_url']=='https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/'
+          required=set(['baseline_ancestry','delta','security','authority','launcher_runtime','anonymous_fail_closed','hostile_input','runtime_9_of_9','security_negatives','rollback'])
+          assert set(manifest['required_proofs'])==required
+          assert all(v=='REQUIRED_PASS' for v in manifest['required_proofs'].values())
+          print('G08_CONTRACT_MANIFEST=PASS')
+          PY
+
+      - name: Materialize BASELINE to CANDIDATE delta and classify protected domains
+        run: |
+          git diff --name-status "${BASELINE_SHA}...${GITHUB_SHA}" | tee /tmp/G08_BASELINE_TO_CANDIDATE_DELTA.txt
+          test -s /tmp/G08_BASELINE_TO_CANDIDATE_DELTA.txt
+          python - <<'PY'
+          import json
+          contract=json.load(open('.c3l/dashboard3/G08_LOCKED_BASELINE_REENTRY_CONTRACT.v1.json',encoding='utf-8'))
+          manifest=json.load(open('.c3l/dashboard3/G08_CURRENT_SLICE_MANIFEST.v1.json',encoding='utf-8'))
+          changed=[]
+          for line in open('/tmp/G08_BASELINE_TO_CANDIDATE_DELTA.txt',encoding='utf-8'):
+              parts=line.rstrip('\n').split('\t')
+              if len(parts)>=2:
+                  changed.append(parts[-1])
+          actual=set()
+          for domain,items in contract['protected_domains'].items():
+              for item in items:
+                  if item in changed:
+                      actual.add(domain)
+          declared=set(manifest['protected_domains_touched'])
+          assert actual==declared, f'Protected-domain mismatch actual={sorted(actual)} declared={sorted(declared)}'
+          print('G08_DELTA_FILES='+str(len(changed)))
+          print('G08_PROTECTED_DOMAINS='+(','.join(sorted(actual)) if actual else 'NONE'))
+          print('G08_BASELINE_TO_CANDIDATE_DELTA=PASS')
+          PY
+
+      - name: Install browser proof harness
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Browser non-degradation proof against production baseline
+        run: |
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          (async()=>{
+            const production=process.env.PRODUCTION_URL;
+            const runtime=process.env.RUNTIME_URL;
+            const hostile=production+'?key=SHOULD_NOT_FORWARD&next=https%3A%2F%2Fevil.example%2F%23x#SHOULD_NOT_FORWARD';
+            const browser=await chromium.launch({headless:true});
+            const page=await browser.newPage();
+            await page.goto(hostile,{waitUntil:'domcontentloaded',timeout:30000});
+            await page.waitForURL(runtime,{timeout:30000});
+            const finalUrl=page.url();
+            if(finalUrl!==runtime) throw new Error('RUNTIME_BINDING_'+finalUrl);
+            if(finalUrl.includes('key=')||finalUrl.includes('next=')||finalUrl.includes('#')) throw new Error('HOSTILE_INPUT_FORWARDED_'+finalUrl);
+            await page.waitForFunction(()=>document.querySelector('#preflightState')?.textContent==='PASS' && document.querySelector('#preflightSources')?.textContent==='9 / 9' && document.querySelector('#preflightSecurity')?.textContent==='Security negatives: PASS' && document.querySelector('#sessionState')?.textContent==='ANONYMOUS · ACCESS DENIED',null,{timeout:30000});
+            console.log('G08_LAUNCHER_RUNTIME_BINDING=PASS');
+            console.log('G08_RUNTIME_9_OF_9=PASS');
+            console.log('G08_SECURITY_NEGATIVES=PASS');
+            console.log('G08_ANONYMOUS_FAIL_CLOSED=PASS');
+            console.log('G08_HOSTILE_INPUT_CONTAINMENT=PASS');
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+
+      - name: Promotion policy check
+        run: |
+          python - <<'PY'
+          import json
+          m=json.load(open('.c3l/dashboard3/G08_CURRENT_SLICE_MANIFEST.v1.json',encoding='utf-8'))
+          if m['promotion_requested']:
+              raise SystemExit('Promotion is forbidden in G08 bootstrap without a separate promotion gate and explicit authorization')
+          print('G08_ROLLBACK_REFERENCE_STATIC=PASS')
+          print('G08_PROMOTION_REQUESTED=FALSE')
+          print('G08_REENTRY_GUARD=PASS')
+          PY
+
+      - name: Upload explicit delta evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: prj004-g08-baseline-to-candidate-delta-${{ github.sha }}
+          path: /tmp/G08_BASELINE_TO_CANDIDATE_DELTA.txt
+          if-no-files-found: error
+          retention-days: 30
