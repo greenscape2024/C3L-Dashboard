@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "PRJ-004-G08-SLICE-MANIFEST-v1",
+  "title": "PRJ-004 Dashboard 3.0 Development Slice Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "project_id",
+    "contract_version",
+    "slice_id",
+    "slice_type",
+    "baseline_sha",
+    "candidate_sha_source",
+    "candidate_branch",
+    "candidate_runtime_url",
+    "promotion_requested",
+    "changed_scope",
+    "protected_domains_touched",
+    "required_proofs"
+  ],
+  "properties": {
+    "project_id": {"const": "PRJ-004"},
+    "contract_version": {"const": "1.0"},
+    "slice_id": {"type": "string", "minLength": 3},
+    "slice_type": {"enum": ["CONTROL_BOOTSTRAP", "FEATURE", "FIX", "REFACTOR", "SECURITY", "RUNTIME", "UI", "DATA"]},
+    "baseline_sha": {"const": "b7d46b80a72772ebc16bc557500eb63916a1d63c"},
+    "candidate_sha_source": {"const": "GITHUB_SHA"},
+    "candidate_branch": {"type": "string", "minLength": 3},
+    "candidate_runtime_url": {"type": "string", "pattern": "^https://"},
+    "promotion_requested": {"type": "boolean"},
+    "changed_scope": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "protected_domains_touched": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["SECURITY", "AUTHORITY", "LAUNCHER_RUNTIME_BINDING", "FAIL_CLOSED_ACCEPTANCE", "ROLLBACK"]}
+    },
+    "required_proofs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseline_ancestry", "delta", "security", "authority", "launcher_runtime", "anonymous_fail_closed", "hostile_input", "runtime_9_of_9", "security_negatives", "rollback"],
+      "properties": {
+        "baseline_ancestry": {"const": "REQUIRED_PASS"},
+        "delta": {"const": "REQUIRED_PASS"},
+        "security": {"const": "REQUIRED_PASS"},
+        "authority": {"const": "REQUIRED_PASS"},
+        "launcher_runtime": {"const": "REQUIRED_PASS"},
+        "anonymous_fail_closed": {"const": "REQUIRED_PASS"},
+        "hostile_input": {"const": "REQUIRED_PASS"},
+        "runtime_9_of_9": {"const": "REQUIRED_PASS"},
+        "security_negatives": {"const": "REQUIRED_PASS"},
+        "rollback": {"const": "REQUIRED_PASS"}
+      }
+    }
+  }
+}
