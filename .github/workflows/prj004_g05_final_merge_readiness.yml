@@ -1,0 +1,70 @@
+name: PRJ-004 G05 Final Merge Readiness
+
+on:
+  push:
+    branches: [ "prj-004/g03-source-authority-security" ]
+    paths:
+      - ".github/workflows/prj004_g05_final_merge_readiness.yml"
+      - ".c3l/dashboard3/G05_RUNTIME_E2E_RESULT.v1.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  final-readiness:
+    runs-on: ubuntu-latest
+    env:
+      BASE_URL: https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install browser harness
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Browser regression — G04 invariants plus persistent G05 evidence
+        run: |
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const page=await browser.newPage();
+            page.on('console',m=>console.log('BROWSER_CONSOLE',m.type(),m.text()));
+            await page.goto(process.env.BASE_URL,{waitUntil:'domcontentloaded',timeout:30000});
+            await page.waitForFunction(()=>document.querySelector('#preflightState')?.textContent==='PASS' && document.querySelector('#preflightSecurity')?.textContent==='Security negatives: PASS',null,{timeout:30000});
+            await page.waitForTimeout(1500);
+            const preflight=(await page.textContent('#preflightState'))?.trim();
+            const count=(await page.textContent('#preflightSources'))?.trim();
+            const security=(await page.textContent('#preflightSecurity'))?.trim();
+            const sessionState=(await page.textContent('#sessionState'))?.trim();
+            const g05=(await page.textContent('#g05State'))?.trim();
+            const g04Hash=await page.getAttribute('#preflightState','data-readback-hash');
+            const sessionDenied=await page.getAttribute('#preflightState','data-session-denied');
+            const c2Denied=await page.getAttribute('#preflightState','data-c2-denied');
+            const g05Hash=await page.getAttribute('#g05State','data-evidence-hash');
+            const completedAt=await page.getAttribute('#g05State','data-completed-at');
+            const title=await page.title();
+            if(preflight!=='PASS') throw new Error(`G04_PREFLIGHT_${preflight}`);
+            if(count!=='9 / 9') throw new Error(`G04_SOURCE_COUNT_${count}`);
+            if(!/^[a-f0-9]{64}$/.test(g04Hash??'')) throw new Error(`G04_READBACK_HASH_${g04Hash}`);
+            if(security!=='Security negatives: PASS') throw new Error(`G04_SECURITY_${security}`);
+            if(sessionDenied!=='true') throw new Error(`G04_SESSION_DENIAL_${sessionDenied}`);
+            if(c2Denied!=='true') throw new Error(`G04_C2_DENIAL_${c2Denied}`);
+            if(sessionState!=='ANONYMOUS · ACCESS DENIED') throw new Error(`G04_ANON_UI_${sessionState}`);
+            if(title!=='C3L Dashboard PRJ-004 G04 Runtime Candidate') throw new Error(`G04_TITLE_${title}`);
+            if(g05!=='PASS · MERGE ELIGIBLE CANDIDATE') throw new Error(`G05_STATUS_${g05}`);
+            if(!/^[a-f0-9]{64}$/.test(g05Hash??'')) throw new Error(`G05_EVIDENCE_HASH_${g05Hash}`);
+            if(!completedAt || Number.isNaN(Date.parse(completedAt))) throw new Error(`G05_COMPLETED_AT_${completedAt}`);
+            console.log('G03_REGRESSION=DELEGATED_TO_BRANCH_VALIDATION');
+            console.log('G04_RUNTIME_REGRESSION=PASS');
+            console.log('G05_POSITIVE_AUTH_EVIDENCE=PERSISTENT_PASS');
+            console.log(`G05_EVIDENCE_HASH=${g05Hash}`);
+            console.log(`G05_COMPLETED_AT=${completedAt}`);
+            console.log('PR1_MERGE_PERMISSION=ELIGIBLE_IF_G03_CURRENT_HEAD_SUCCESS');
+            console.log('PRODUCTION_MAIN_MERGE=NOT_PERFORMED');
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
