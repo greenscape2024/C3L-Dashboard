@@ -30,6 +30,17 @@
     "source_query_or_hash_must_not_be_copied": true,
     "open_redirect_parameters": "FORBIDDEN"
   },
+  "runtime_rebind_evidence": {
+    "launcher_blob_sha": "e8df8cfebbe6e3888f673ac4af0e4463177e624f",
+    "prior_runtime_expected_launcher_blob_sha": "4beee062494fe6bad1fec8c693d3f8f05d0d1127",
+    "appdeploy_snapshot_version": "1787741954706",
+    "rebinding_scope": "EXPECTED.secure_index only",
+    "source_registry_anchor_changed": false,
+    "security_contract_anchor_changed": false,
+    "auth_policy_changed": false,
+    "fail_closed_policy_changed": false,
+    "rebinding_status": "APPLIED_TO_APPDEPLOY_CANDIDATE"
+  },
   "acceptance": {
     "g03_regression": "REQUIRED_PASS",
     "g04_regression": "REQUIRED_PASS",
