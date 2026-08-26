@@ -67,7 +67,7 @@ jobs:
             const finalUrl=page.url();
             if(finalUrl!==target) throw new Error(`FINAL_URL_${finalUrl}`);
             if(finalUrl.includes('key=')||finalUrl.includes('next=')||finalUrl.includes('#')) throw new Error(`FORWARDED_INPUT_${finalUrl}`);
-            await page.waitForFunction(()=>document.querySelector('#preflightState')?.textContent==='PASS' && document.querySelector('#preflightSources')?.textContent==='9 / 9',null,{timeout:30000});
+            await page.waitForFunction(()=>document.querySelector('#preflightState')?.textContent==='PASS' && document.querySelector('#preflightSources')?.textContent==='9 / 9' && document.querySelector('#preflightSecurity')?.textContent==='Security negatives: PASS' && document.querySelector('#sessionState')?.textContent==='ANONYMOUS · ACCESS DENIED' && document.querySelector('#g05State')?.textContent==='PASS · MERGE ELIGIBLE CANDIDATE',null,{timeout:30000});
             const security=(await page.textContent('#preflightSecurity'))?.trim();
             const session=(await page.textContent('#sessionState'))?.trim();
             const g05=(await page.textContent('#g05State'))?.trim();
