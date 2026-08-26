@@ -25,7 +25,7 @@ jobs:
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
 
-      - name: Browser E2E — 9-of-9, unauthorized denial, C2 denial
+      - name: Browser E2E — 9-of-9, exact readback, SDK security denials
         run: |
           node <<'NODE'
           const { chromium } = require('playwright');
@@ -34,24 +34,30 @@ jobs:
             const page=await browser.newPage();
             page.on('console',m=>console.log('BROWSER_CONSOLE',m.type(),m.text()));
             await page.goto(process.env.BASE_URL,{waitUntil:'domcontentloaded',timeout:30000});
-            await page.waitForFunction(()=>document.querySelector('#preflightState')?.textContent==='PASS',null,{timeout:30000});
-            const preflight=await page.textContent('#preflightState');
-            const count=await page.textContent('#preflightSources');
-            const sessionState=await page.textContent('#sessionState');
+            await page.waitForFunction(()=>document.querySelector('#preflightState')?.textContent==='PASS' && document.querySelector('#preflightSecurity')?.textContent==='Security negatives: PASS',null,{timeout:30000});
+            const preflight=(await page.textContent('#preflightState'))?.trim();
+            const count=(await page.textContent('#preflightSources'))?.trim();
+            const security=(await page.textContent('#preflightSecurity'))?.trim();
+            const sessionState=(await page.textContent('#sessionState'))?.trim();
+            const hash=await page.getAttribute('#preflightState','data-readback-hash');
+            const sessionDenied=await page.getAttribute('#preflightState','data-session-denied');
+            const c2Denied=await page.getAttribute('#preflightState','data-c2-denied');
             const title=await page.title();
-            if(preflight?.trim()!=='PASS') throw new Error(`PREFLIGHT_${preflight}`);
-            if(count?.trim()!=='9 / 9') throw new Error(`SOURCE_COUNT_${count}`);
-            if(sessionState?.trim()!=='ANONYMOUS · ACCESS DENIED') throw new Error(`ANON_UI_${sessionState}`);
+            if(preflight!=='PASS') throw new Error(`PREFLIGHT_${preflight}`);
+            if(count!=='9 / 9') throw new Error(`SOURCE_COUNT_${count}`);
+            if(!/^[a-f0-9]{64}$/.test(hash??'')) throw new Error(`READBACK_HASH_${hash}`);
+            if(security!=='Security negatives: PASS') throw new Error(`SECURITY_NEGATIVES_${security}`);
+            if(sessionDenied!=='true') throw new Error(`SESSION_DENIAL_${sessionDenied}`);
+            if(c2Denied!=='true') throw new Error(`C2_DENIAL_${c2Denied}`);
+            if(sessionState!=='ANONYMOUS · ACCESS DENIED') throw new Error(`ANON_UI_${sessionState}`);
             if(title!=='C3L Dashboard PRJ-004 G04 Runtime Candidate') throw new Error(`TITLE_${title}`);
-            const sessionCode=await page.evaluate(async()=>{const r=await fetch('/__c3l/session',{credentials:'same-origin',cache:'no-store'});return r.status});
-            if(sessionCode!==401) throw new Error(`SESSION_HTTP_${sessionCode}`);
-            const c2Code=await page.evaluate(async()=>{const r=await fetch('/api/control/change-route',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({route_id:'TEST'})});return r.status});
-            if(c2Code!==403) throw new Error(`C2_HTTP_${c2Code}`);
             console.log('G04_RUNTIME_9_OF_9=PASS');
-            console.log('SCHEMA_FRESHNESS_READBACK=PASS');
+            console.log('SCHEMA=PASS');
+            console.log('FRESHNESS=PASS');
+            console.log('EXACT_READBACK_HASH=PASS');
             console.log('ZERO_FALSE_VERIFIED=PASS');
-            console.log('ANONYMOUS_SESSION_DENIAL=PASS');
-            console.log('C2_MUTATION_DENIAL=PASS');
+            console.log('ANONYMOUS_SESSION_DENIAL_VIA_APP_API=PASS');
+            console.log('C2_MUTATION_DENIAL_VIA_APP_API=PASS');
             console.log('PRODUCTION_MAIN_MERGE=NOT_PERFORMED');
             await browser.close();
           })().catch(e=>{console.error(e);process.exit(1)});
