@@ -1,0 +1,39 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-04",
+  "artifact": "RUNTIME_BINDING_EVIDENCE",
+  "version": "1.0",
+  "status": "CANDIDATE_RUNTIME_READY_CI_PENDING",
+  "deployment": {
+    "provider": "AppDeploy",
+    "app_id": "c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t",
+    "url": "https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/",
+    "production_main_merged": false
+  },
+  "runtime_authorities": [
+    {"authority_id":"PRJ004-AUTH-BASELINE-INTEGRITY-001","api":"/api/authority/baseline-integrity","permission":"AUTHENTICATED_READ"},
+    {"authority_id":"PRJ004-AUTH-DRIFT-001","api":"/api/authority/drift","permission":"AUTHENTICATED_READ"},
+    {"authority_id":"PRJ004-AUTH-SECURITY-RBAC-001","api":"/__c3l/session","permission":"AUTHENTICATED_READ"},
+    {"authority_id":"PRJ004-AUTH-MODULE-GRAPH-001","api":"/api/authority/modules","permission":"AUTHENTICATED_READ"},
+    {"authority_id":"PRJ004-AUTH-ROUTING-001","api":"/api/authority/routing","permission":"AUTHENTICATED_READ"},
+    {"authority_id":"PRJ004-AUTH-SNAPSHOT-001","api":"/api/authority/snapshots","permission":"AUTHENTICATED_READ"},
+    {"authority_id":"PRJ004-AUTH-ALERTS-001","api":"/api/authority/alerts","permission":"AUTHENTICATED_READ"},
+    {"authority_id":"PRJ004-AUTH-BOUNDARY-001","api":"/api/authority/boundaries","permission":"AUTHENTICATED_READ"},
+    {"authority_id":"PRJ004-AUTH-EVALUATION-HISTORY-001","api":"/api/authority/evaluations","permission":"AUTHENTICATED_READ"}
+  ],
+  "proof_surfaces": {
+    "aggregate_authenticated_readback": "/api/authority/readback",
+    "non_sensitive_internal_selftest_summary": "/api/_g04/selftest",
+    "anonymous_session_negative_test": "/__c3l/session",
+    "c2_mutation_negative_test": "/api/control/change-route"
+  },
+  "acceptance_rules": {
+    "verified_sources_required": 9,
+    "schema_pass_required": true,
+    "freshness_pass_required": true,
+    "zero_false_verified_required": true,
+    "anonymous_session_http": 401,
+    "c2_mutation_http": 403,
+    "merge_pr1_before_ci_pass": false
+  }
+}

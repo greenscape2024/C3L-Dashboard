@@ -1,0 +1,65 @@
+{
+  "project_id": "PRJ-004",
+  "artifact": "SECURITY_AUTH_CONTRACT",
+  "version": "1.0",
+  "status": "LOCK_CANDIDATE",
+  "security_mode": "ULTRA_SECURE",
+  "default_policy": "DENY",
+  "client_secret_policy": {
+    "embedded_tokens_forbidden": true,
+    "query_string_credentials_forbidden": true,
+    "local_storage_bearer_tokens_forbidden": true,
+    "client_side_shared_secret_forbidden": true
+  },
+  "session_contract": {
+    "endpoint": "/__c3l/session",
+    "method": "GET",
+    "credentials": "same-origin",
+    "cache": "no-store",
+    "schema_id": "c3l.dashboard.auth_session.v1",
+    "max_age_seconds": 60,
+    "required_roles": ["dashboard_viewer", "dashboard_operator", "dashboard_admin"],
+    "on_unavailable": "DENY",
+    "on_invalid_schema": "DENY",
+    "on_expired": "DENY"
+  },
+  "roles": {
+    "dashboard_viewer": {
+      "allow": ["READ_STATUS", "READ_INTEGRITY", "READ_SECURITY", "READ_MODULES", "READ_ROUTING", "READ_REPOSITORY", "READ_SNAPSHOTS", "READ_ALERTS", "READ_EVALUATIONS"],
+      "deny": ["ACK_ALERT", "RUN_VALIDATION", "DEPLOY", "ROLLBACK", "CHANGE_ROUTE", "CHANGE_SECURITY", "OVERRIDE_RELEASE_GATE"]
+    },
+    "dashboard_operator": {
+      "allow": ["READ_STATUS", "READ_INTEGRITY", "READ_SECURITY", "READ_MODULES", "READ_ROUTING", "READ_REPOSITORY", "READ_SNAPSHOTS", "READ_ALERTS", "READ_EVALUATIONS", "RUN_VALIDATION_REQUEST", "CREATE_SNAPSHOT_REQUEST"],
+      "deny": ["DEPLOY", "ROLLBACK", "CHANGE_ROUTE", "CHANGE_SECURITY", "OVERRIDE_RELEASE_GATE"]
+    },
+    "dashboard_admin": {
+      "allow": ["READ_STATUS", "READ_INTEGRITY", "READ_SECURITY", "READ_MODULES", "READ_ROUTING", "READ_REPOSITORY", "READ_SNAPSHOTS", "READ_ALERTS", "READ_EVALUATIONS", "RUN_VALIDATION_REQUEST", "CREATE_SNAPSHOT_REQUEST"],
+      "deny": ["DIRECT_STATE_MUTATION", "EMBED_SECRET", "CLIENT_SIDE_AUTH_OVERRIDE", "OVERRIDE_RELEASE_GATE"]
+    }
+  },
+  "data_access_contract": {
+    "rule": "Dashboard client may read data only after a valid session readback PASS",
+    "same_origin_required": true,
+    "cors_wildcard_forbidden": true,
+    "cache_sensitive_responses": "no-store",
+    "source_verification_required_before_verified_display": true
+  },
+  "readback_acceptance": {
+    "required": [
+      "HTTP success from session endpoint",
+      "authenticated=true",
+      "schema validation PASS",
+      "non-expired expires_at",
+      "at least one permitted dashboard role",
+      "64-hex auth_context_hash"
+    ],
+    "failure_display": "ACCESS_DENIED / AUTHORITY_UNAVAILABLE",
+    "verified_security_display_allowed": false,
+    "note": "Security state itself requires an independent bound security authority; successful authentication alone is not SECURITY=VERIFIED."
+  },
+  "runtime_binding": {
+    "backend_implementation": null,
+    "backend_status": "TBD_NOT_PROVEN",
+    "production_enablement": "BLOCKED_UNTIL_BACKEND_AND_READBACK_PASS"
+  }
+}

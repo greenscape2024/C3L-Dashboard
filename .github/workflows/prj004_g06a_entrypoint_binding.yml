@@ -1,0 +1,88 @@
+name: PRJ-004 G06A Production Entrypoint Binding
+
+on:
+  push:
+    branches: [ "prj-004/g03-source-authority-security" ]
+    paths:
+      - "index.html"
+      - ".c3l/dashboard3/G06A_PRODUCTION_ENTRYPOINT_CONTRACT.v1.json"
+      - ".github/workflows/prj004_g06a_entrypoint_binding.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  entrypoint-binding:
+    runs-on: ubuntu-latest
+    env:
+      TARGET_URL: https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Static launcher contract validation
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          h=pathlib.Path('index.html').read_text(encoding='utf-8')
+          c=json.load(open('.c3l/dashboard3/G06A_PRODUCTION_ENTRYPOINT_CONTRACT.v1.json', encoding='utf-8'))
+          target=c['hosting_model']['runtime_target']
+          assert target=='https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/'
+          assert f"const FIXED_PRODUCTION_RUNTIME='{target}'" in h
+          assert 'window.location.replace(FIXED_PRODUCTION_RUNTIME)' in h
+          assert 'rel="noopener noreferrer"' in h
+          assert 'URLSearchParams' not in h
+          assert 'location.search' not in h
+          assert 'location.hash' not in h
+          assert '/__c3l/session' not in h
+          assert 'data/status.json' not in h
+          assert 'fetch(' not in h
+          assert 'C3L2025KEY' not in h
+          assert c['security_invariants']['query_forwarding'] is False
+          assert c['security_invariants']['hash_forwarding'] is False
+          assert c['security_invariants']['dynamic_redirect_target'] is False
+          print('G06A_STATIC_LAUNCHER=PASS')
+          PY
+
+      - name: Install browser harness
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Browser proof — public entrypoint to verified runtime
+        run: |
+          python -m http.server 4173 --bind 127.0.0.1 >/tmp/prj004-g06a-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          (async()=>{
+            const target=process.env.TARGET_URL;
+            const browser=await chromium.launch({headless:true});
+            const page=await browser.newPage();
+            page.on('console',m=>console.log('BROWSER_CONSOLE',m.type(),m.text()));
+            await page.goto('http://127.0.0.1:4173/?key=SHOULD_NOT_FORWARD&next=https%3A%2F%2Fevil.example%2F#SHOULD_NOT_FORWARD',{waitUntil:'domcontentloaded',timeout:30000});
+            await page.waitForURL(target,{timeout:30000});
+            const finalUrl=page.url();
+            if(finalUrl!==target) throw new Error(`FINAL_URL_${finalUrl}`);
+            if(finalUrl.includes('key=')||finalUrl.includes('next=')||finalUrl.includes('#')) throw new Error(`FORWARDED_INPUT_${finalUrl}`);
+            await page.waitForFunction(()=>document.querySelector('#preflightState')?.textContent==='PASS' && document.querySelector('#preflightSources')?.textContent==='9 / 9' && document.querySelector('#preflightSecurity')?.textContent==='Security negatives: PASS' && document.querySelector('#sessionState')?.textContent==='ANONYMOUS · ACCESS DENIED' && document.querySelector('#g05State')?.textContent==='PASS · MERGE ELIGIBLE CANDIDATE',null,{timeout:30000});
+            const security=(await page.textContent('#preflightSecurity'))?.trim();
+            const session=(await page.textContent('#sessionState'))?.trim();
+            const g05=(await page.textContent('#g05State'))?.trim();
+            const title=await page.title();
+            if(security!=='Security negatives: PASS') throw new Error(`SECURITY_${security}`);
+            if(session!=='ANONYMOUS · ACCESS DENIED') throw new Error(`ANON_SESSION_${session}`);
+            if(g05!=='PASS · MERGE ELIGIBLE CANDIDATE') throw new Error(`G05_${g05}`);
+            if(title!=='C3L Dashboard PRJ-004 G04 Runtime Candidate') throw new Error(`TITLE_${title}`);
+            console.log('G06A_PUBLIC_ENTRY_REDIRECT=PASS');
+            console.log('G06A_QUERY_FORWARDING=BLOCKED');
+            console.log('G06A_HASH_FORWARDING=BLOCKED');
+            console.log('G06A_OPEN_REDIRECT=BLOCKED');
+            console.log('G06A_RUNTIME_9_OF_9=PASS');
+            console.log('G06A_ANONYMOUS_FAIL_CLOSED=PASS');
+            console.log('PRODUCTION_MAIN_MERGE=NOT_PERFORMED');
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE

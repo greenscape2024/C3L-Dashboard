@@ -1,0 +1,133 @@
+name: PRJ-004 G03 Candidate Validation
+
+on:
+  push:
+    branches:
+      - prj-004/g03-source-authority-security
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.c3l/dashboard3/**'
+      - 'index.html'
+      - '.github/workflows/prj004_g03_candidate_validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-g03:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Parse G03/G06A JSON artifacts
+        run: |
+          python - <<'PY'
+          import json
+          files = [
+              '.c3l/dashboard3/SOURCE_AUTHORITY_REGISTRY.v1.json',
+              '.c3l/dashboard3/SOURCE_SCHEMAS.v1.json',
+              '.c3l/dashboard3/SECURITY_AUTH_CONTRACT.v1.json',
+              '.c3l/dashboard3/G03_ACCEPTANCE_RULES.v1.json',
+              '.c3l/dashboard3/RUNTIME_BINDING_STATUS.v1.json',
+              '.c3l/dashboard3/G03_IMPLEMENTATION_READBACK_PLAN.v1.json',
+              '.c3l/dashboard3/G06A_PRODUCTION_ENTRYPOINT_CONTRACT.v1.json',
+          ]
+          for f in files:
+              with open(f, encoding='utf-8') as h:
+                  json.load(h)
+              print('JSON PASS', f)
+          PY
+
+      - name: Validate authority registry invariants
+        run: |
+          python - <<'PY'
+          import json
+          p='.c3l/dashboard3/SOURCE_AUTHORITY_REGISTRY.v1.json'
+          d=json.load(open(p, encoding='utf-8'))
+          assert d['principles']['dashboard_is_not_ssot'] is True
+          assert d['principles']['unknown_is_never_pass'] is True
+          assert d['principles']['verified_requires_runtime_binding_and_readback'] is True
+          ids=set()
+          for s in d['sources']:
+              sid=s['source_id']; assert sid not in ids; ids.add(sid)
+              assert s['owner']
+              assert s['contract_locator']
+              assert s['schema_id']
+              assert 'freshness_sla_seconds' in s
+              assert s['readback_rule']
+              assert s['permission_boundary']
+              if s.get('runtime_locator') is None:
+                  assert s['verification_state'] != 'PROVEN_EXISTING'
+          print('AUTHORITY REGISTRY PASS', len(ids), 'sources')
+          PY
+
+      - name: Validate security contract invariants
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('.c3l/dashboard3/SECURITY_AUTH_CONTRACT.v1.json', encoding='utf-8'))
+          assert d['security_mode']=='ULTRA_SECURE'
+          assert d['default_policy']=='DENY'
+          assert d['client_secret_policy']['embedded_tokens_forbidden'] is True
+          assert d['client_secret_policy']['query_string_credentials_forbidden'] is True
+          assert d['client_secret_policy']['client_side_shared_secret_forbidden'] is True
+          assert d['session_contract']['endpoint']=='/__c3l/session'
+          assert d['session_contract']['credentials']=='same-origin'
+          assert d['runtime_binding']['backend_status']=='TBD_NOT_PROVEN'
+          print('SECURITY CONTRACT PASS')
+          PY
+
+      - name: Reject legacy client-side credential gate
+        run: |
+          if grep -Eq "const[[:space:]]+REQUIRED=|params\.get\(['\"]key['\"]\)|\?key=C3L|C3L2025KEY" index.html; then
+            echo 'FAIL: legacy client-side/query-string credential pattern found'
+            exit 1
+          fi
+          echo 'LEGACY CREDENTIAL ABSENCE PASS'
+
+      - name: Validate secure entrypoint mode
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          html=pathlib.Path('index.html').read_text(encoding='utf-8')
+          c=json.load(open('.c3l/dashboard3/G06A_PRODUCTION_ENTRYPOINT_CONTRACT.v1.json', encoding='utf-8'))
+          target=c['hosting_model']['runtime_target']
+          if 'FIXED_PRODUCTION_RUNTIME' in html:
+              assert target in html
+              assert 'window.location.replace(FIXED_PRODUCTION_RUNTIME)' in html
+              assert 'rel="noopener noreferrer"' in html
+              assert 'location.search' not in html
+              assert 'location.hash' not in html
+              assert 'URLSearchParams' not in html
+              assert '/__c3l/session' not in html
+              assert 'data/status.json' not in html
+              assert c['security_invariants']['query_forwarding'] is False
+              assert c['security_invariants']['hash_forwarding'] is False
+              assert c['security_invariants']['dynamic_redirect_target'] is False
+              print('FIXED HTTPS LAUNCHER PASS')
+          else:
+              assert "const SESSION_ENDPOINT='/__c3l/session'" in html
+              assert "credentials:'same-origin'" in html
+              assert "if(!authenticatedSession) throw new Error('AUTH_REQUIRED')" in html
+              assert 'authenticatedSession=await getSession()' in html
+              print('SAME-ORIGIN SESSION ENTRYPOINT PASS')
+          PY
+
+      - name: Validate runtime binding fail-closed state
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('.c3l/dashboard3/RUNTIME_BINDING_STATUS.v1.json', encoding='utf-8'))
+          required_not_proven = [
+            'baseline_integrity','drift','security_rbac_backend','module_registry_graph',
+            'routing','snapshots','alerts_lifecycle','organizator_agent_boundary','evaluation_history'
+          ]
+          for k in required_not_proven:
+              assert d['bindings'][k]=='NOT_PROVEN', (k,d['bindings'][k])
+          assert d['bindings']['github_repository']=='PROVEN_EXISTING'
+          assert d['bindings']['lineage_evidence']=='PROVEN_EXISTING'
+          print('RUNTIME BINDING FAIL-CLOSED PASS')
+          PY
