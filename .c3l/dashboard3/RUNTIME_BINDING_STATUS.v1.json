@@ -1,0 +1,20 @@
+{
+  "project_id": "PRJ-004",
+  "artifact": "RUNTIME_BINDING_STATUS",
+  "version": "1.0",
+  "status": "CANDIDATE",
+  "bindings": {
+    "baseline_integrity": "NOT_PROVEN",
+    "drift": "NOT_PROVEN",
+    "security_rbac_backend": "NOT_PROVEN",
+    "module_registry_graph": "NOT_PROVEN",
+    "routing": "NOT_PROVEN",
+    "snapshots": "NOT_PROVEN",
+    "alerts_lifecycle": "NOT_PROVEN",
+    "organizator_agent_boundary": "NOT_PROVEN",
+    "evaluation_history": "NOT_PROVEN",
+    "github_repository": "PROVEN_EXISTING",
+    "lineage_evidence": "PROVEN_EXISTING"
+  },
+  "rule": "No NOT_PROVEN binding may be displayed as VERIFIED by Dashboard 3.0."
+}
