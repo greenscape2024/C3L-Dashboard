@@ -1,0 +1,40 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-04",
+  "artifact": "RUNTIME_E2E_RESULT",
+  "version": "1.0",
+  "status": "PASS_WITH_POSITIVE_AUTH_USER_SMOKE_HOLD",
+  "tested_head_sha": "344a1c27cf4f6766db61460cf828d736274ac5c5",
+  "runtime": {
+    "provider": "AppDeploy",
+    "app_id": "c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t",
+    "url": "https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/",
+    "production_main_merged": false
+  },
+  "ci": {
+    "workflow": "PRJ-004 G04 Runtime E2E Proof",
+    "workflow_run_id": 32954619118,
+    "job_id": 98133432267,
+    "conclusion": "success"
+  },
+  "acceptance": {
+    "runtime_authorities_9_of_9": "PASS",
+    "schema_validation": "PASS",
+    "freshness": "PASS",
+    "exact_readback_hash_64hex": "PASS",
+    "zero_false_verified": "PASS",
+    "anonymous_session_denial_via_official_app_api": "PASS",
+    "c2_mutation_denial_via_official_app_api": "PASS",
+    "g03_candidate_validation_on_tested_head": "PASS",
+    "positive_authenticated_real_user_session_smoke": "NOT_INDEPENDENTLY_PROVEN"
+  },
+  "security_note": "No test credential, bypass, synthetic bearer token, or authentication backdoor was introduced. The positive real-user AppDeploy login path is implemented but remains intentionally outside automated CI until an authorized user session is exercised.",
+  "merge_permission": "HOLD_PENDING_POSITIVE_AUTHENTICATED_REAL_USER_SESSION_SMOKE",
+  "required_final_smoke": [
+    "Complete one authorized AppDeploy user sign-in",
+    "Read /__c3l/session through the official app API and validate authenticated=true, subject_id, permitted role, issued_at, expires_at and 64-hex auth_context_hash",
+    "Read protected /api/authority/readback and require 9/9 VERIFIED with schema/freshness/readback PASS",
+    "Re-run C2 mutation negative test and require DENIED",
+    "Keep PR #1 unmerged until that read-back is recorded"
+  ]
+}
