@@ -4,8 +4,11 @@ on:
   push:
     branches: [ "prj-004/g03-source-authority-security" ]
     paths:
+      - "index.html"
       - ".github/workflows/prj004_g05_final_merge_readiness.yml"
+      - ".github/workflows/prj004_g06a_entrypoint_binding.yml"
       - ".c3l/dashboard3/G05_RUNTIME_E2E_RESULT.v1.json"
+      - ".c3l/dashboard3/G06A_PRODUCTION_ENTRYPOINT_CONTRACT.v1.json"
   workflow_dispatch:
 
 permissions:
