@@ -4,116 +4,27 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta http-equiv="Cache-Control" content="no-store" />
-<title>C3L SYSTEM DASHBOARD — PRJ-004 G03 Secure Candidate</title>
+<meta name="referrer" content="no-referrer" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" />
+<title>C3L Dashboard 3.0 — Secure Production Launcher</title>
 <style>
-:root{--bg:#111;--fg:#eee;--card:#1b1b1b;--dim:#888;--accent:#005eff;--accent2:#00c6ff;--ok:#22c55e;--bad:#ef4444;--warn:#f59e0b}
-*{box-sizing:border-box}
-body{margin:0;font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--fg)}
-header{position:relative;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;padding:14px 20px;text-align:center;font-weight:700}
-nav{display:flex;background:#222;border-bottom:2px solid #333}
-nav button{flex:1;padding:12px;background:#222;color:#cfcfcf;border:0;cursor:pointer;font-weight:600}
-nav button:hover,nav button.active{background:#005eff;color:#fff}
-section{display:none;padding:18px}.active{display:block}.card{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 0 8px #0006;margin-bottom:12px}
-.small{color:var(--dim);font-size:12px}.status-dot{position:absolute;right:14px;top:12px;display:flex;align-items:center;gap:8px}.dot{width:10px;height:10px;border-radius:50%;background:var(--bad)}.dot.ok{background:var(--ok)}.dot.warn{background:var(--warn)}
-#gate{display:flex;align-items:center;justify-content:center;min-height:70vh;padding:18px}#app{display:none}
-code{word-break:break-all}
+:root{color-scheme:dark;--bg:#07101f;--card:#111c31;--border:#243654;--fg:#eef4ff;--dim:#94a3b8;--accent:#5b82ff}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);color:var(--fg);font-family:"Segoe UI",Arial,sans-serif;padding:24px}.card{max-width:680px;width:100%;background:var(--card);border:1px solid var(--border);border-radius:22px;padding:28px;box-shadow:0 24px 80px #0007}.eyebrow{font-size:13px;letter-spacing:.16em;color:#9fb5ea}.muted{color:var(--dim);line-height:1.55}.btn{display:inline-block;margin-top:10px;padding:12px 18px;border-radius:12px;background:var(--accent);color:white;text-decoration:none;font-weight:700}.status{margin-top:18px;font-size:13px;color:#7ee2ad}
 </style>
 </head>
 <body>
-<header>
-  C3L SYSTEM DASHBOARD | PRJ-004 G03 SECURE CANDIDATE
-  <span class="status-dot"><span id="onlineDot" class="dot" aria-label="blocked"></span><span id="onlineLbl" class="small">Auth provjera...</span></span>
-</header>
-
-<div id="gate">
-  <div class="card" style="max-width:680px">
-    <h3 id="gateTitle">Provjera autorizirane sesije…</h3>
-    <p id="gateText" class="small">Dashboard je fail-closed. Podaci se ne učitavaju prije valjanog same-origin session read-backa.</p>
-  </div>
-</div>
-
-<div id="app">
-<nav>
-  <button class="active" data-tab="status">Status</button>
-  <button data-tab="incidents">Incidents</button>
-  <button data-tab="capacity">Capacity</button>
-  <button data-tab="about">About</button>
-</nav>
-<section id="status" class="active"><div class="card" id="statusCard">Loading...</div></section>
-<section id="incidents"><div class="card"><ul id="incList"><li>Loading...</li></ul></div></section>
-<section id="capacity"><div class="card" id="capCard">Loading...</div></section>
-<section id="about"><div class="card"><h3>PRJ-004 G03 Security Candidate</h3><p class="small">Client-side shared secrets i query-string credentiali su uklonjeni. Pristup zahtijeva valjanu session potvrdu s <code>/__c3l/session</code>. Ako auth backend nije dostupan ili odgovor ne zadovolji ugovor, pristup ostaje blokiran.</p></div></section>
-</div>
-
+<main class="card">
+  <div class="eyebrow">PRJ-004 · PRODUCTION ENTRYPOINT</div>
+  <h1>C3L Dashboard 3.0</h1>
+  <p class="muted">Ovaj GitHub Pages entrypoint ne obrađuje vjerodajnice i ne čita operativne podatke. Sigurna autentikacija, autorizacija i authority read-back izvršavaju se isključivo na verificiranom runtimeu.</p>
+  <a id="continue" class="btn" rel="noopener noreferrer">Otvori sigurni Dashboard</a>
+  <div class="status">Preusmjeravanje na verificirani runtime…</div>
+</main>
 <script>
 'use strict';
-const SESSION_ENDPOINT='/__c3l/session';
-const ALLOWED_ROLES=new Set(['dashboard_viewer','dashboard_operator','dashboard_admin']);
-let authenticatedSession=null;
-
-function setIndicator(state,label){
-  const dot=document.getElementById('onlineDot');
-  const lbl=document.getElementById('onlineLbl');
-  dot.className='dot'+(state==='ok'?' ok':state==='warn'?' warn':'');
-  dot.setAttribute('aria-label',state); lbl.textContent=label;
-}
-function validHex64(v){return typeof v==='string'&&/^[A-Fa-f0-9]{64}$/.test(v)}
-function validateSession(s){
-  if(!s||s.authenticated!==true) return false;
-  if(typeof s.session_id!=='string'||s.session_id.length<16) return false;
-  if(typeof s.subject_id!=='string'||!s.subject_id) return false;
-  if(!Array.isArray(s.roles)||!s.roles.some(r=>ALLOWED_ROLES.has(r))) return false;
-  if(!validHex64(s.auth_context_hash)) return false;
-  const issued=Date.parse(s.issued_at), exp=Date.parse(s.expires_at), now=Date.now();
-  if(!Number.isFinite(issued)||!Number.isFinite(exp)||issued>now+60000||exp<=now) return false;
-  return true;
-}
-async function getSession(){
-  const r=await fetch(SESSION_ENDPOINT,{method:'GET',credentials:'same-origin',cache:'no-store',headers:{'Accept':'application/json'}});
-  if(!r.ok) throw new Error('AUTHORITY_UNAVAILABLE');
-  const s=await r.json();
-  if(!validateSession(s)) throw new Error('AUTH_SESSION_INVALID');
-  return s;
-}
-async function fetchJSON(path){
-  if(!authenticatedSession) throw new Error('AUTH_REQUIRED');
-  const r=await fetch(path,{cache:'no-store',credentials:'same-origin',headers:{'Accept':'application/json'}});
-  if(!r.ok) throw new Error('HTTP_'+r.status);
-  return r.json();
-}
-async function refresh(){
-  try{
-    const [status,cap,inc]=await Promise.all([fetchJSON('data/status.json'),fetchJSON('data/capacity.json'),fetchJSON('data/incidents.json')]);
-    document.getElementById('statusCard').innerHTML=`<b>Core Engine:</b> ${status.core_engine}<br><b>Registry:</b> ${status.registry}<br><b>Automation:</b> ${status.automation}<br><b>Timestamp:</b> ${status.timestamp}<br><span class="small">Legacy source: do not interpret as VERIFIED unless freshness/source gates pass.</span>`;
-    document.getElementById('capCard').innerHTML=`<b>Used:</b> ${cap.used}% &nbsp;|&nbsp; <b>Free:</b> ${cap.free}%`;
-    document.getElementById('incList').innerHTML=inc.map(i=>`<li>${i.date} – ${i.event} (${i.status}) <span class="small">LEGACY_EVENT</span></li>`).join('');
-    setIndicator('ok','Session valid');
-  }catch(e){
-    console.error(e); setIndicator('warn','Data unavailable');
-  }
-}
-function showTab(id){
-  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
-  document.querySelectorAll('#app section').forEach(s=>s.classList.toggle('active',s.id===id));
-}
-document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
-
-(async function boot(){
-  try{
-    authenticatedSession=await getSession();
-    document.getElementById('gate').style.display='none';
-    document.getElementById('app').style.display='block';
-    setIndicator('ok','Session valid');
-    await refresh();
-    setInterval(refresh,60000);
-  }catch(e){
-    authenticatedSession=null;
-    document.getElementById('gateTitle').textContent='Pristup blokiran';
-    document.getElementById('gateText').textContent='Nema valjanog autoriziranog session read-backa. PRJ-004 G03 kandidat namjerno ne koristi client-side shared secret i ne učitava podatke bez potvrđene sesije.';
-    setIndicator('blocked','Access denied');
-    console.error(e);
-  }
-})();
+const FIXED_PRODUCTION_RUNTIME='https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/';
+document.getElementById('continue').href=FIXED_PRODUCTION_RUNTIME;
+window.location.replace(FIXED_PRODUCTION_RUNTIME);
 </script>
 </body>
 </html>
