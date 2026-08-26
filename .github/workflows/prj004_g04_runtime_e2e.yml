@@ -1,0 +1,62 @@
+name: PRJ-004 G04 Runtime E2E Proof
+
+on:
+  push:
+    branches: [ "prj-004/g03-source-authority-security" ]
+    paths:
+      - ".c3l/dashboard3/G04_RUNTIME_BINDING_EVIDENCE.v1.json"
+      - ".github/workflows/prj004_g04_runtime_e2e.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-e2e:
+    runs-on: ubuntu-latest
+    env:
+      BASE_URL: https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Runtime 9-of-9 authority self-test
+        run: |
+          set -euo pipefail
+          SELFTEST="$(curl -fsS --retry 2 --retry-delay 1 "$BASE_URL/api/_g04/selftest")"
+          printf '%s\n' "$SELFTEST" | jq -e '
+            .gate_pass == true and
+            .verified_count == 9 and
+            .total_sources == 9 and
+            .schema_pass == true and
+            .freshness_pass == true and
+            .zero_false_verified == true and
+            (.readback_hash | test("^[a-f0-9]{64}$"))
+          '
+
+      - name: Negative unauthorized session test
+        run: |
+          set -euo pipefail
+          CODE="$(curl -sS -o /tmp/session-body -w '%{http_code}' "$BASE_URL/__c3l/session")"
+          test "$CODE" = "401"
+
+      - name: Permission enforcement C2 mutation test
+        run: |
+          set -euo pipefail
+          CODE="$(curl -sS -o /tmp/mutation-body -w '%{http_code}' -X POST -H 'content-type: application/json' -d '{"route_id":"TEST"}' "$BASE_URL/api/control/change-route")"
+          test "$CODE" = "403"
+
+      - name: Candidate frontend availability
+        run: |
+          set -euo pipefail
+          curl -fsS --retry 2 "$BASE_URL/" | grep -q 'C3L Dashboard PRJ-004 G04 Runtime Candidate'
+
+      - name: Record acceptance summary
+        run: |
+          echo 'G04_RUNTIME_9_OF_9=PASS'
+          echo 'SCHEMA=PASS'
+          echo 'FRESHNESS=PASS'
+          echo 'ZERO_FALSE_VERIFIED=PASS'
+          echo 'ANONYMOUS_SESSION_DENIAL=PASS'
+          echo 'C2_MUTATION_DENIAL=PASS'
+          echo 'PRODUCTION_MAIN_MERGE=NOT_PERFORMED'
