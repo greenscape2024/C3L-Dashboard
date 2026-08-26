@@ -1,0 +1,52 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-07",
+  "artifact": "ROLLBACK_REFERENCE_CONTRACT",
+  "version": "1.0",
+  "status": "VERIFIED_REFERENCE_READY",
+  "purpose": "Provide an exact, non-automatic rollback target for any future Dashboard 3.0 regression after the G07 baseline lock.",
+  "approved_rollback_target": {
+    "git_commit_sha": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+    "git_tree_sha": "1f7e6115ba94312693afc95491b39c6fdf6ca172",
+    "baseline_reference_branch": "baseline/prj-004-dashboard-3.0-b7d46b80",
+    "launcher_path": "index.html",
+    "launcher_blob_sha": "72a271328d0ead519c853a2842d6d565463ca994",
+    "public_entrypoint_url": "https://greenscape2024.github.io/C3L-Dashboard/",
+    "runtime_app_id": "c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t",
+    "runtime_url": "https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/",
+    "runtime_version_name": "v11",
+    "runtime_snapshot_version": "1787752423174"
+  },
+  "lineage_only_not_approved_rollback": {
+    "pre_release_main_sha": "4c1e39343e44e278e3b10975fed7afd4cd239201",
+    "classification": "LINEAGE_ONLY_NOT_APPROVED_ROLLBACK_TARGET",
+    "reason": "It predates the verified G03-G06A security/runtime acceptance chain and must not be treated as an equivalent safe state."
+  },
+  "rollback_authorization": {
+    "automatic_rollback": false,
+    "explicit_authorization_required": true,
+    "c2_mutation_default": "BLOCKED",
+    "baseline_reference_must_be_reverified_before_execution": true
+  },
+  "rollback_sequence": [
+    "Freeze further Dashboard 3.0 mutation and identify the concrete regression.",
+    "Verify the approved Git commit, launcher blob and AppDeploy v11 snapshot still resolve exactly.",
+    "If runtime drifted, restore AppDeploy version 1787752423174 only under explicit rollback authorization.",
+    "If public source drifted, restore the public launcher state represented by Git commit b7d46b80a72772ebc16bc557500eb63916a1d63c under explicit rollback authorization.",
+    "Wait for the corresponding GitHub Pages deployment to reach terminal SUCCESS.",
+    "Perform independent public read-back of the normal production URL and a hostile query/hash URL.",
+    "Require ACCESS_DENIED fail-closed for anonymous access, runtime preflight PASS 9/9 and Security negatives PASS.",
+    "If any exact identity or security check fails, stop and reopen the recovery gate; do not declare rollback accepted."
+  ],
+  "post_rollback_acceptance": {
+    "git_target_exact_match": "REQUIRED",
+    "launcher_blob_exact_match": "REQUIRED",
+    "runtime_version_exact_match": "REQUIRED_WHEN_RUNTIME_ROLLBACK_USED",
+    "pages_deploy_success": "REQUIRED_WHEN_PUBLIC_SOURCE_ROLLBACK_USED",
+    "public_readback": "REQUIRED_PASS",
+    "hostile_input_containment": "REQUIRED_PASS",
+    "anonymous_fail_closed": "REQUIRED_PASS",
+    "runtime_preflight_9_of_9": "REQUIRED_PASS",
+    "security_negatives": "REQUIRED_PASS"
+  }
+}
