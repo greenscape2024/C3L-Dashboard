@@ -31,15 +31,17 @@
     "open_redirect_parameters": "FORBIDDEN"
   },
   "runtime_rebind_evidence": {
-    "launcher_blob_sha": "e8df8cfebbe6e3888f673ac4af0e4463177e624f",
-    "prior_runtime_expected_launcher_blob_sha": "4beee062494fe6bad1fec8c693d3f8f05d0d1127",
-    "appdeploy_snapshot_version": "1787741954706",
+    "launcher_blob_sha": "72a271328d0ead519c853a2842d6d565463ca994",
+    "prior_runtime_expected_launcher_blob_sha": "e8df8cfebbe6e3888f673ac4af0e4463177e624f",
+    "appdeploy_snapshot_version": "1787752423174",
     "rebinding_scope": "EXPECTED.secure_index only",
+    "manual_fallback_href": "FIXED_RUNTIME_TARGET_EXPLICIT",
     "source_registry_anchor_changed": false,
     "security_contract_anchor_changed": false,
     "auth_policy_changed": false,
+    "g05_persistence_contract_changed": false,
     "fail_closed_policy_changed": false,
-    "rebinding_status": "APPLIED_TO_APPDEPLOY_CANDIDATE"
+    "rebinding_status": "APPLIED_AND_SOURCE_READBACK_VERIFIED"
   },
   "acceptance": {
     "g03_regression": "REQUIRED_PASS",
