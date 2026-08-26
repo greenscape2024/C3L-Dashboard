@@ -37,8 +37,7 @@ jobs:
             const page=await browser.newPage();
             page.on('console',m=>console.log('BROWSER_CONSOLE',m.type(),m.text()));
             await page.goto(process.env.BASE_URL,{waitUntil:'domcontentloaded',timeout:30000});
-            await page.waitForFunction(()=>document.querySelector('#preflightState')?.textContent==='PASS' && document.querySelector('#preflightSecurity')?.textContent==='Security negatives: PASS',null,{timeout:30000});
-            await page.waitForFunction(()=>{const el=document.querySelector('#g05State'); const hash=el?.getAttribute('data-evidence-hash'); const completedAt=el?.getAttribute('data-completed-at'); return el?.textContent?.trim()==='PASS · MERGE ELIGIBLE CANDIDATE' && /^[a-f0-9]{64}$/.test(hash??'') && !!completedAt && !Number.isNaN(Date.parse(completedAt));},null,{timeout:30000});
+            await page.waitForFunction(()=>{const preflightEl=document.querySelector('#preflightState'); const g05El=document.querySelector('#g05State'); const preflight=preflightEl?.textContent?.trim(); const count=document.querySelector('#preflightSources')?.textContent?.trim(); const security=document.querySelector('#preflightSecurity')?.textContent?.trim(); const g05=g05El?.textContent?.trim(); const g04Hash=preflightEl?.getAttribute('data-readback-hash')??''; const g05Hash=g05El?.getAttribute('data-evidence-hash')??''; const completedAt=g05El?.getAttribute('data-completed-at'); return preflight==='PASS' && count==='9 / 9' && security==='Security negatives: PASS' && g05==='PASS · MERGE ELIGIBLE CANDIDATE' && /^[a-f0-9]{64}$/.test(g04Hash) && /^[a-f0-9]{64}$/.test(g05Hash) && !!completedAt && !Number.isNaN(Date.parse(completedAt));},null,{timeout:30000});
             const preflight=(await page.textContent('#preflightState'))?.trim();
             const count=(await page.textContent('#preflightSources'))?.trim();
             const security=(await page.textContent('#preflightSecurity'))?.trim();
