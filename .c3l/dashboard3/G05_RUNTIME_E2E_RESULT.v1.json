@@ -1,0 +1,38 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-05",
+  "artifact": "RUNTIME_E2E_RESULT",
+  "version": "1.0",
+  "status": "PASS",
+  "tested_head_sha": "9c12a7d047d378124897210d1277c1d9c82cdf8d",
+  "runtime": {
+    "provider": "AppDeploy",
+    "app_id": "c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t",
+    "url": "https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/",
+    "production_main_merged": false
+  },
+  "ci": {
+    "workflow": "PRJ-004 G05 Final Merge Readiness",
+    "workflow_run_id": 32961357930,
+    "job_id": 98154188339,
+    "conclusion": "success"
+  },
+  "acceptance": {
+    "runtime_authorities_9_of_9": "PASS",
+    "schema_validation": "PASS",
+    "freshness": "PASS",
+    "exact_readback_hash_64hex": "PASS",
+    "anonymous_session_denial_via_official_app_api": "PASS",
+    "c2_mutation_denial_via_official_app_api": "PASS",
+    "positive_authenticated_real_user_session_smoke": "PASS",
+    "g04_runtime_regression": "PASS",
+    "g03_candidate_validation_on_current_branch": "PASS"
+  },
+  "positive_authenticated_user_evidence": {
+    "state": "PASS · MERGE ELIGIBLE CANDIDATE",
+    "auth_context_hash": "e5286454ef4168e9a319be276a2ff11433539821c7240346b5f31f40fced89df",
+    "completed_at": "2026-08-26T10:26:01.167Z"
+  },
+  "merge_permission": "ELIGIBLE_IF_G03_CURRENT_HEAD_SUCCESS",
+  "security_note": "No test credential, bypass, synthetic bearer token, or authentication backdoor was introduced. Positive authenticated proof is recorded as committed evidence instead of being re-polled from the live runtime on unrelated launcher-only changes."
+}
