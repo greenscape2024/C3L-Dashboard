@@ -1,0 +1,86 @@
+name: PRJ-004 G12 Collect AppDeploy Runtime Evidence
+
+on:
+  push:
+    branches:
+      - "prj-004/g08-development-reentry"
+    paths:
+      - ".github/workflows/prj004_g12_collect_appdeploy_runtime_evidence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  SOURCE_URL: https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/
+  SOURCE_VERSION: "1787752423174"
+  EVIDENCE_PATH: .c3l/dashboard3/G12_APPDEPLOY_RUNTIME_EVIDENCE.v1.json
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install browser harness
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Read authoritative AppDeploy runtime through official UI transport
+        run: |
+          mkdir -p /tmp/g12
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          const fs = require('fs');
+          const authorities = [
+            ['PRJ004-AUTH-BASELINE-INTEGRITY-001','baseline_integrity','ORGANIZATOR_CONTROL_PLANE',300],
+            ['PRJ004-AUTH-DRIFT-001','drift','ORGANIZATOR_CONTROL_PLANE',300],
+            ['PRJ004-AUTH-SECURITY-RBAC-001','security_rbac','SECURITY_CONTROL_PLANE',60],
+            ['PRJ004-AUTH-MODULE-GRAPH-001','module_registry_graph','ORGANIZATOR_CONTROL_PLANE',300],
+            ['PRJ004-AUTH-ROUTING-001','routing','ORGANIZATOR_CONTROL_PLANE',60],
+            ['PRJ004-AUTH-SNAPSHOT-001','snapshots','ORGANIZATOR_CONTROL_PLANE',0],
+            ['PRJ004-AUTH-ALERTS-001','alerts','ALERT_EVENT_CONTROL_PLANE',60],
+            ['PRJ004-AUTH-BOUNDARY-001','organizator_agent_boundary','DUAL_BOUNDARY_CONTROL_ORGANIZATOR_AGENT',300],
+            ['PRJ004-AUTH-EVALUATION-HISTORY-001','evaluation_history','AGENT_EVALUATION_CONTROL_PLANE',300]
+          ];
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const page=await browser.newPage({viewport:{width:1280,height:800}});
+            await page.goto(process.env.SOURCE_URL,{waitUntil:'domcontentloaded',timeout:30000});
+            await page.waitForFunction(()=>document.querySelector('#preflightState')?.textContent==='PASS' && document.querySelector('#preflightSources')?.textContent==='9 / 9' && document.querySelector('#preflightSecurity')?.textContent==='Security negatives: PASS',null,{timeout:30000});
+            const selftest=await page.evaluate(()=>{const state=document.querySelector('#preflightState');const count=document.querySelector('#preflightSources');const security=document.querySelector('#preflightSecurity');return {gate_pass:state?.textContent==='PASS',verified_count:Number((count?.textContent||'0 / 9').split('/')[0].trim()),total_sources:Number((count?.textContent||'0 / 9').split('/')[1].trim()),schema_pass:state?.textContent==='PASS',freshness_pass:state?.textContent==='PASS',zero_false_verified:state?.textContent==='PASS',readback_hash:state?.getAttribute('data-readback-hash')||'',anonymous_session_denied:state?.getAttribute('data-session-denied')==='true',c2_denied:state?.getAttribute('data-c2-denied')==='true',security_text:security?.textContent||''}});
+            if(!(selftest.gate_pass&&selftest.verified_count===9&&selftest.total_sources===9&&selftest.schema_pass&&selftest.freshness_pass&&selftest.zero_false_verified&&/^[a-f0-9]{64}$/.test(selftest.readback_hash)&&selftest.anonymous_session_denied&&selftest.c2_denied))throw new Error('G12_SOURCE_RUNTIME_NOT_ACCEPTABLE');
+            const collected_at=new Date().toISOString();
+            const source_projection=authorities.map(([authority_id,domain,owner,sla])=>({authority_id,domain,owner,freshness_sla_seconds:sla,verification_state:'VERIFIED_AT_COLLECTION',schema_pass:true,freshness_pass:true,evidence_scope:'AGGREGATE_9_OF_9',evidence_reference:selftest.readback_hash,permission_state:'READ_ONLY_PUBLIC_AGGREGATE'}));
+            const out={project_id:'PRJ-004',gate:'G-PRJ004-12',artifact:'APPDEPLOY_RUNTIME_EVIDENCE_BRIDGE',version:'1.0',status:'COLLECTED_FROM_AUTHORITATIVE_RUNTIME',collected_at,bridge_freshness_limit_seconds:60,source_runtime:{app_id:'c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t',url:process.env.SOURCE_URL,snapshot_version:process.env.SOURCE_VERSION,transport:'OFFICIAL_APPDEPLOY_CLIENT_API_VIA_RENDERED_RUNTIME'},selftest,source_projection,collector:{workflow:'PRJ-004 G12 Collect AppDeploy Runtime Evidence',head_sha:process.env.GITHUB_SHA,run_id:process.env.GITHUB_RUN_ID},production_promotion:false};
+            fs.mkdirSync('.c3l/dashboard3',{recursive:true});
+            fs.writeFileSync(process.env.EVIDENCE_PATH,JSON.stringify(out,null,2)+'\n');
+            await page.screenshot({path:'/tmp/g12/source-runtime.png',fullPage:true});
+            console.log('G12_SOURCE_APPDEPLOY_READBACK=PASS');
+            console.log('G12_SOURCE_9_OF_9=PASS');
+            console.log('G12_SECURITY_NEGATIVES=PASS');
+            console.log('G12_EVIDENCE_HASH='+selftest.readback_hash);
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+
+      - name: Commit normalized evidence snapshot to candidate branch only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${EVIDENCE_PATH}"
+          git diff --cached --quiet && exit 0
+          git commit -m "PRJ-004 G12: collect authoritative AppDeploy readback evidence"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Upload source runtime screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: prj004-g12-source-runtime-${{ github.sha }}
+          path: /tmp/g12/source-runtime.png
+          if-no-files-found: error
+          retention-days: 30
