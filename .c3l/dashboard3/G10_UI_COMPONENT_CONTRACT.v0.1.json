@@ -1,0 +1,163 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-10",
+  "artifact": "UI_COMPONENT_CONTRACT",
+  "version": "0.1",
+  "status": "CANDIDATE_NOT_IMPLEMENTATION",
+  "baseline_sha": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+  "accepted_g09_input_sha": "c81e7581477ac8e9eeab0fe439400a9a71a5f87a",
+  "source_contracts": {
+    "authority_registry": ".c3l/dashboard3/SOURCE_AUTHORITY_REGISTRY.v1.json",
+    "source_schemas": ".c3l/dashboard3/SOURCE_SCHEMAS.v1.json",
+    "runtime_binding_status": ".c3l/dashboard3/RUNTIME_BINDING_STATUS.v1.json",
+    "g09_information_architecture": ".c3l/dashboard3/G09_INFORMATION_ARCHITECTURE.v0.1.json",
+    "g09_wireframe": ".c3l/dashboard3/G09_WIREFRAME_LITE_FULL.v0.1.json"
+  },
+  "global_component_rules": {
+    "direct_authoritative_source_fetch": "FORBIDDEN",
+    "input_model": "NORMALIZED_DASHBOARD_VIEW_MODEL_ONLY",
+    "shadow_ssot": "FORBIDDEN",
+    "state_recomputation_in_component": "FORBIDDEN",
+    "severity_recomputation_in_component": "FORBIDDEN",
+    "freshness_recomputation_in_component": "FORBIDDEN",
+    "evidence_substitution_in_component": "FORBIDDEN",
+    "unknown_to_pass_coercion": "FORBIDDEN",
+    "c2_mutation_actions": "FORBIDDEN",
+    "cross_owner_write": "FORBIDDEN",
+    "permission_aware_visibility_may_hide_only": true,
+    "semantic_identity_key": "metric_id"
+  },
+  "shared_metric_projection": {
+    "required_fields": [
+      "metric_id",
+      "display_state",
+      "severity",
+      "last_updated",
+      "freshness",
+      "source",
+      "evidence_reference",
+      "owner",
+      "permission_state"
+    ],
+    "allowed_display_states": ["PASS","FAIL","DEGRADED","UNKNOWN","STALE","UNAVAILABLE","NOT_EVALUATED","BLOCKED"],
+    "allowed_severity": ["Critical","High","Medium","Info","None"],
+    "fail_closed_rule": "UNKNOWN, STALE, UNAVAILABLE, NOT_EVALUATED or BLOCKED may never render as verified green.",
+    "lite_full_parity_rule": "The same metric_id must render the same display_state, severity, freshness, source and evidence_reference in every mode where it is visible."
+  },
+  "components": [
+    {
+      "component_id": "CMP-STATUS-CARD",
+      "name": "StatusCard",
+      "purpose": "Render one normalized metric or approved metric group without changing semantics.",
+      "required_inputs": ["metric_projection","title","mode"],
+      "optional_inputs": ["subtitle","owner_badge","evidence_affordance"],
+      "metric_binding": "ONE_OR_MORE_EXISTING_METRIC_IDS_ONLY",
+      "source_binding": "INHERIT_FROM_METRIC_PROJECTION",
+      "render_contract": ["display_state","severity","freshness","last_updated"],
+      "allowed_interactions": ["open_full_context","open_evidence"],
+      "forbidden_interactions": ["mutate_state","override_severity","override_freshness","execute_c2"],
+      "fail_closed_behavior": "Non-verifiable metric state must remain visibly non-green and retain source/freshness context."
+    },
+    {
+      "component_id": "CMP-EVIDENCE-DRAWER",
+      "name": "EvidenceDrawer",
+      "purpose": "Expose provenance and independent read-back context for the selected metric.",
+      "required_inputs": ["metric_id","source","evidence_reference","last_updated","freshness"],
+      "optional_inputs": ["readback_summary","immutable_source_id","evaluation_id"],
+      "metric_binding": "SELECTED_EXISTING_METRIC_ID",
+      "source_binding": "READ_ONLY_PROVENANCE_FROM_VIEW_MODEL",
+      "render_contract": ["source","evidence_reference","last_updated","freshness"],
+      "allowed_interactions": ["navigate_to_related_evidence","close_drawer"],
+      "forbidden_interactions": ["edit_evidence","replace_source","write_authority","execute_c2"],
+      "fail_closed_behavior": "Missing evidence is shown as UNKNOWN/NOT_PROVEN and never synthesized."
+    },
+    {
+      "component_id": "CMP-MODULE-GRAPH",
+      "name": "ModuleGraph",
+      "purpose": "Read-only visualization of existing module relationships.",
+      "required_inputs": ["nodes","edges","graph_freshness"],
+      "optional_inputs": ["selected_module_id"],
+      "metric_binding": "MOD-01,MOD-02,MOD-03,MOD-04,MOD-05",
+      "source_binding": "PRJ004-AUTH-MODULE-GRAPH-001_NORMALIZED_VIEW",
+      "node_contract": {
+        "required_fields": ["module_id","owner","version","health","integrity","security","last_update"],
+        "owner_badge_required": true
+      },
+      "edge_contract": {
+        "required_fields": ["source_module","target_module","relation_type","authority","status"],
+        "allowed_relation_types": ["DEPENDS_ON","ROUTES_TO","READS_FROM","EVALUATES","REPORTS_TO"]
+      },
+      "allowed_interactions": ["select_node","filter_relation_type","open_module_detail"],
+      "forbidden_interactions": ["create_edge","delete_edge","change_route","graph_owned_orchestration","execute_c2"],
+      "fail_closed_behavior": "Unknown node or edge authority remains explicitly UNKNOWN and is never inferred from topology."
+    },
+    {
+      "component_id": "CMP-ALERT-ROW",
+      "name": "AlertRow",
+      "purpose": "Render one canonical alert/event record with severity, state and provenance.",
+      "required_inputs": ["alert_id","source_id","severity","state","timestamp","evidence_reference"],
+      "optional_inputs": ["resolved_at","owner","freshness"],
+      "metric_binding": "ALT-01,ALT-02,ALT-03,ALT-04",
+      "source_binding": "PRJ004-AUTH-ALERTS-001_NORMALIZED_VIEW",
+      "allowed_interactions": ["open_evidence","filter_by_severity"],
+      "forbidden_interactions": ["fabricate_ack","change_alert_state","delete_alert","execute_c2"],
+      "fail_closed_behavior": "Legacy events without canonical alert schema render as LEGACY_EVENT/NOT_VERIFIED, never VERIFIED_ALERT."
+    },
+    {
+      "component_id": "CMP-MODE-SWITCH",
+      "name": "LiteFullModeSwitch",
+      "purpose": "Change presentation density without changing metric semantics or source state.",
+      "required_inputs": ["current_mode","allowed_modes","permission_state"],
+      "optional_inputs": ["preserved_metric_context"],
+      "metric_binding": "MODE-01,MODE-02,MODE-03,MODE-04",
+      "source_binding": "LOCAL_PRESENTATION_STATE_PLUS_SHARED_METRIC_MODEL",
+      "allowed_interactions": ["switch_lite_full"],
+      "forbidden_interactions": ["refetch_to_different_source","recompute_metric","downgrade_severity","execute_c2"],
+      "fail_closed_behavior": "Permission-aware hiding may remove detail only; it may not alter underlying metric state."
+    },
+    {
+      "component_id": "CMP-OWNERSHIP-BADGE",
+      "name": "OwnershipBadge",
+      "purpose": "Make metric/domain ownership explicit wherever ORGANIZATOR or AGENT state is shown.",
+      "required_inputs": ["owner","domain"],
+      "optional_inputs": ["authority_id"],
+      "metric_binding": "UNI-01,UNI-02,UNI-03_AND_DOMAIN_METRICS",
+      "source_binding": "OWNER_FROM_NORMALIZED_VIEW_MODEL",
+      "allowed_owner_values": ["ORGANIZATOR","AGENT","SYSTEM","SECURITY_CONTROL_PLANE","ALERT_EVENT_CONTROL_PLANE","GITHUB_REPOSITORY","GITHUB_ACTIONS_LINEAGE_WORKFLOW"],
+      "allowed_interactions": ["show_owner_context"],
+      "forbidden_interactions": ["change_owner","merge_owner","delegate_authority","execute_c2"],
+      "fail_closed_behavior": "Unknown owner renders UNKNOWN OWNER; component may not infer owner from visual placement."
+    },
+    {
+      "component_id": "CMP-OA-BOUNDARY",
+      "name": "OrganizerAgentBoundary",
+      "purpose": "Persistently separate ORGANIZATOR and AGENT ownership lanes while allowing view-only correlation.",
+      "required_inputs": ["boundary_state","organizer_lane_state","agent_lane_state"],
+      "optional_inputs": ["correlation_context"],
+      "metric_binding": "UNI-03",
+      "source_binding": "PRJ004-AUTH-BOUNDARY-001_NORMALIZED_VIEW",
+      "render_contract": ["OWNERSHIP BOUNDARY — VIEW ONLY","owner_badges","boundary_state"],
+      "allowed_interactions": ["navigate_cross_lane_read_only","open_boundary_evidence"],
+      "forbidden_interactions": ["cross_lane_write","merge_state_identity","merge_route_authority","merge_ownership","execute_c2"],
+      "fail_closed_behavior": "If boundary authority is unavailable or unknown, unified cross-lane interaction is reduced to isolated read-only lanes and boundary state is BLOCKED/UNKNOWN."
+    }
+  ],
+  "implementation_constraints": {
+    "production_component_code_in_g10": false,
+    "production_deploy_in_g10": false,
+    "visual_style_finalization_in_g10": false,
+    "new_router": false,
+    "new_scheduler": false,
+    "new_state_registry": false,
+    "new_authorization_model": false
+  },
+  "acceptance": {
+    "component_count": 7,
+    "all_components_source_bound": true,
+    "all_components_fail_closed": true,
+    "all_components_c2_free": true,
+    "lite_full_semantic_parity_preserved": true,
+    "organizer_agent_boundary_preserved": true,
+    "production_promotion": false
+  }
+}
