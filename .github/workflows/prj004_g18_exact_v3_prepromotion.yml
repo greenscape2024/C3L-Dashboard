@@ -1,0 +1,96 @@
+name: PRJ-004 G18 Exact v3 Pre-Promotion Proof
+
+on:
+  push:
+    branches:
+      - prj-004/g18-prepromotion-proof
+    paths:
+      - .github/workflows/prj004_g18_exact_v3_prepromotion.yml
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    env:
+      OLD_PROD_SHA: 913a1cfb711ac6fe53a7a681c23682e1e9ea9b0d
+      V3_URL: https://c3l-dashboard-3-0-g17r-v3-candidate-jpoi50.v2.appdeploy.ai/
+      ACCEPTED_REF: authority/prj-004-accepted-production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Lock current production and accepted pointer
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main +refs/heads/${ACCEPTED_REF}:refs/remotes/origin/${ACCEPTED_REF}
+          test "$(git rev-parse refs/remotes/origin/main)" = "${OLD_PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${ACCEPTED_REF})" = "${OLD_PROD_SHA}"
+          echo G18_MAIN_POINTER_PREMATCH=PASS
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Fresh exact v3 semantic and fail-closed proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/g18
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          const fs=require('fs');
+          const assert=(c,m)=>{if(!c)throw new Error(m)};
+          (async()=>{
+            const b=await chromium.launch({headless:true});
+            const ctx=await b.newContext();
+            const writes=[];
+            ctx.on('request',r=>{const u=r.url(),m=r.method();let p;try{p=new URL(u)}catch{};if(m==='POST'&&p?.origin==='https://api-v2.appdeploy.ai'&&p?.pathname==='/p')return;if(!['GET','HEAD','OPTIONS'].includes(m))writes.push(m+' '+u)});
+            const p=await ctx.newPage();
+            await p.goto(process.env.V3_URL,{waitUntil:'networkidle',timeout:30000});
+            await p.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: PASS',null,{timeout:30000});
+            const t=async id=>(await p.getByTestId(id).textContent()||'').trim();
+            const state={adapter:await t('adapter-state'),authority:await t('authority-count'),freshness:await t('bridge-freshness'),rep03:await t('state-REP-03'),sys01:await t('state-SYS-01'),sec01:await t('state-SEC-01'),boundary:await t('boundary-state'),binding:await t('binding-mode'),context:(await p.locator('p.context').textContent()||'').trim()};
+            assert(state.authority==='9 / 9 authorities','AUTH');
+            assert(['Evidence: FRESH','Evidence: AGING'].includes(state.freshness),'FRESH');
+            assert(state.rep03==='PASS','REP03');
+            assert(state.sys01==='PASS','SYS01');
+            assert(state.sec01==='PASS','SEC01');
+            assert(state.boundary==='PASS','BOUNDARY');
+            assert(state.binding==='ACCEPTED_PRODUCTION_POINTER_READ_ONLY','BINDING');
+            assert(state.context==='PRJ-004 · NON-PRODUCTION v3','CONTEXT');
+            assert(writes.length===0,'WRITES');
+            await ctx.close();
+            const fail=await b.newPage();
+            await fail.route('**/*',async route=>route.request().url().includes('normalized-runtime')?route.fulfill({status:500,contentType:'application/json',body:'{"error":"g18_fail_closed"}'}):route.continue());
+            await fail.goto(process.env.V3_URL,{waitUntil:'networkidle',timeout:30000});
+            await fail.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: BLOCKED',null,{timeout:30000});
+            const ft=async id=>(await fail.getByTestId(id).textContent()||'').trim();
+            assert(await ft('state-SYS-01')==='UNKNOWN','FAIL_SYS');
+            assert(await ft('state-SEC-01')==='UNKNOWN','FAIL_SEC');
+            assert(await ft('boundary-state')==='BLOCKED','FAIL_BOUNDARY');
+            fs.writeFileSync('/tmp/g18/prepromotion.json',JSON.stringify({status:'PASS',state,fail_closed:true,unauthorized_writes:writes.length},null,2)+'\n');
+            console.log('G18_V3_9_OF_9=PASS');
+            console.log('G18_V3_REP03=PASS');
+            console.log('G18_V3_SYS01=PASS');
+            console.log('G18_V3_SECURITY=PASS');
+            console.log('G18_V3_OA=PASS');
+            console.log('G18_V3_FAIL_CLOSED=PASS');
+            await b.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - name: Re-lock production and pointer after proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main +refs/heads/${ACCEPTED_REF}:refs/remotes/origin/${ACCEPTED_REF}
+          test "$(git rev-parse refs/remotes/origin/main)" = "${OLD_PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${ACCEPTED_REF})" = "${OLD_PROD_SHA}"
+          echo G18_PREPROMOTION_FINAL_LOCK=PASS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prj004-g18-prepromotion-${{ github.run_id }}
+          path: /tmp/g18/
+          if-no-files-found: error
+          retention-days: 30
