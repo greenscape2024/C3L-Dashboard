@@ -1,0 +1,51 @@
+name: PRJ-004 G16 Semantic Observation
+
+on:
+  push:
+    branches:
+      - prj-004/g16-new-baseline-reentry
+
+permissions:
+  contents: read
+
+jobs:
+  semantic-observation:
+    runs-on: ubuntu-latest
+    env:
+      PROD_SHA: dbc763f91efbc68166416a53a003d4dfde20567b
+      PROD_URL: https://greenscape2024.github.io/C3L-Dashboard/
+      PROD_RUNTIME_URL: https://c3l-dashboard-3-0-g12-runtime-adapter-candidate-snhzg1.v2.appdeploy.ai/
+      NEW_BASELINE_REF: baseline/prj-004-dashboard-3.0-rc1-dbc763f9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Exact production identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main +refs/heads/${NEW_BASELINE_REF}:refs/remotes/origin/${NEW_BASELINE_REF}
+          test "$(git rev-parse refs/remotes/origin/main)" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${NEW_BASELINE_REF})" = "${PROD_SHA}"
+          echo G16_SEMANTIC_BASELINE_IDENTITY=PASS
+      - name: Install browser harness
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Observe production semantic state
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/g16semantic
+          node <<'NODE'
+          const {chromium}=require('playwright');const fs=require('fs');const assert=(c,m)=>{if(!c)throw new Error(m)};
+          async function read(browser,url,label){const p=await browser.newPage();await p.goto(url,{waitUntil:'networkidle',timeout:30000});assert(p.url()===process.env.PROD_RUNTIME_URL,label+'_TARGET_'+p.url());await p.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: PASS',null,{timeout:30000});const t=async id=>(await p.getByTestId(id).textContent()||'').trim();const out={label,authority_count:await t('authority-count'),adapter_state:await t('adapter-state'),freshness:await t('bridge-freshness'),overall_state:await t('state-SYS-01'),release_gate_state:await t('state-REP-03'),security_state:await t('state-SEC-01'),context_label:(await p.locator('p.context').textContent()||'').trim()};await p.close();return out}
+          (async()=>{const b=await chromium.launch({headless:true});const canonical=await read(b,process.env.PROD_URL,'canonical');const hostile=await read(b,process.env.PROD_URL+'?g16semantic=1&next=https%3A%2F%2Fevil.example%2F#NO_FORWARD','hostile');for(const x of [canonical,hostile]){assert(x.authority_count==='9 / 9 authorities',x.label+'_AUTH');assert(x.adapter_state==='Adapter: PASS',x.label+'_ADAPTER');assert(['Evidence: FRESH','Evidence: AGING'].includes(x.freshness),x.label+'_FRESH');assert(x.security_state==='PASS',x.label+'_SECURITY')}const releaseDrift=canonical.release_gate_state!=='PASS'||canonical.overall_state!=='PASS';const result={status:'OBSERVED',production_sha:process.env.PROD_SHA,canonical,hostile,release_baseline_semantic_drift:releaseDrift,security_drift:false,authority_drift:false,ui_label_debt:canonical.context_label==='PRJ-004 · G12 NON-PRODUCTION'};fs.writeFileSync('/tmp/g16semantic/semantic-observation.json',JSON.stringify(result,null,2)+'\n');console.log('G16_AUTHORITY_DRIFT=0');console.log('G16_SECURITY_DRIFT=0');console.log('G16_RELEASE_GATE_STATE='+canonical.release_gate_state);console.log('G16_OVERALL_STATE='+canonical.overall_state);console.log('G16_RELEASE_BASELINE_SEMANTIC_DRIFT='+(releaseDrift?'DETECTED':'0'));console.log('G16_UI_LABEL_DEBT='+(result.ui_label_debt?'CONFIRMED':'0'));await b.close()})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - name: Upload semantic observation
+        uses: actions/upload-artifact@v4
+        with:
+          name: prj004-g16-semantic-${{ github.run_id }}
+          path: /tmp/g16semantic/
+          if-no-files-found: error
+          retention-days: 30
