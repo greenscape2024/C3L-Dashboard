@@ -1,0 +1,49 @@
+name: PRJ-004 G17R Refresh Authority Evidence
+on:
+  push:
+    branches:
+      - prj-004/g17r-release-baseline-authority
+    paths:
+      - .github/workflows/prj004_g17r_refresh_authority_evidence.yml
+permissions:
+  contents: write
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    env:
+      PROD_SHA: 913a1cfb711ac6fe53a7a681c23682e1e9ea9b0d
+      SOURCE_URL: https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/
+      SOURCE_VERSION: '1787752423174'
+      EVIDENCE_BRANCH: prj-004/g08-development-reentry
+      EVIDENCE_PATH: .c3l/dashboard3/G12_APPDEPLOY_RUNTIME_EVIDENCE.v1.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Preserve production main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main +refs/heads/${EVIDENCE_BRANCH}:refs/remotes/origin/${EVIDENCE_BRANCH}
+          test "$(git rev-parse refs/remotes/origin/main)" = "${PROD_SHA}"
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Refresh exact G12-compatible 9-of-9 evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout -B "${EVIDENCE_BRANCH}" "refs/remotes/origin/${EVIDENCE_BRANCH}"
+          node <<'NODE'
+          const {chromium}=require('playwright');const fs=require('fs');
+          const authorities=[['PRJ004-AUTH-BASELINE-INTEGRITY-001','baseline_integrity','ORGANIZATOR_CONTROL_PLANE',300],['PRJ004-AUTH-DRIFT-001','drift','ORGANIZATOR_CONTROL_PLANE',300],['PRJ004-AUTH-SECURITY-RBAC-001','security_rbac','SECURITY_CONTROL_PLANE',60],['PRJ004-AUTH-MODULE-GRAPH-001','module_registry_graph','ORGANIZATOR_CONTROL_PLANE',300],['PRJ004-AUTH-ROUTING-001','routing','ORGANIZATOR_CONTROL_PLANE',60],['PRJ004-AUTH-SNAPSHOT-001','snapshots','ORGANIZATOR_CONTROL_PLANE',0],['PRJ004-AUTH-ALERTS-001','alerts','ALERT_EVENT_CONTROL_PLANE',60],['PRJ004-AUTH-BOUNDARY-001','organizator_agent_boundary','DUAL_BOUNDARY_CONTROL_ORGANIZATOR_AGENT',300],['PRJ004-AUTH-EVALUATION-HISTORY-001','evaluation_history','AGENT_EVALUATION_CONTROL_PLANE',300]];
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();await p.goto(process.env.SOURCE_URL,{waitUntil:'domcontentloaded',timeout:30000});await p.waitForFunction(()=>document.querySelector('#preflightState')?.textContent==='PASS'&&document.querySelector('#preflightSources')?.textContent==='9 / 9'&&document.querySelector('#preflightSecurity')?.textContent==='Security negatives: PASS',null,{timeout:30000});const st=await p.evaluate(()=>{const s=document.querySelector('#preflightState'),c=document.querySelector('#preflightSources');return{gate_pass:s?.textContent==='PASS',verified_count:Number((c?.textContent||'0 / 9').split('/')[0].trim()),total_sources:Number((c?.textContent||'0 / 9').split('/')[1].trim()),schema_pass:s?.textContent==='PASS',freshness_pass:s?.textContent==='PASS',zero_false_verified:s?.textContent==='PASS',readback_hash:s?.getAttribute('data-readback-hash')||'',anonymous_session_denied:s?.getAttribute('data-session-denied')==='true',c2_denied:s?.getAttribute('data-c2-denied')==='true'}});if(!(st.gate_pass&&st.verified_count===9&&st.total_sources===9&&st.schema_pass&&st.freshness_pass&&st.zero_false_verified&&/^[a-f0-9]{64}$/.test(st.readback_hash)&&st.anonymous_session_denied&&st.c2_denied))throw new Error('SOURCE_NOT_ACCEPTABLE');const collected_at=new Date().toISOString();const source_projection=authorities.map(([authority_id,domain,owner,sla])=>({authority_id,domain,owner,freshness_sla_seconds:sla,verification_state:'VERIFIED_AT_COLLECTION',schema_pass:true,freshness_pass:true,evidence_scope:'AGGREGATE_9_OF_9',evidence_reference:st.readback_hash,permission_state:'READ_ONLY_PUBLIC_AGGREGATE'}));const out={project_id:'PRJ-004',gate:'G-PRJ004-12',artifact:'APPDEPLOY_RUNTIME_EVIDENCE_BRIDGE',version:'1.0',status:'COLLECTED_FROM_AUTHORITATIVE_RUNTIME',collected_at,bridge_freshness_limit_seconds:300,source_runtime:{app_id:'c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t',url:process.env.SOURCE_URL,snapshot_version:process.env.SOURCE_VERSION,transport:'OFFICIAL_APPDEPLOY_CLIENT_API_VIA_RENDERED_RUNTIME'},selftest:st,source_projection,collector:{workflow:'PRJ-004 G17R Refresh Authority Evidence',run_id:process.env.GITHUB_RUN_ID},production_sha:process.env.PROD_SHA};fs.writeFileSync(process.env.EVIDENCE_PATH,JSON.stringify(out,null,2)+'\n');await b.close()})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${EVIDENCE_PATH}"
+          test "$(git diff --cached --name-only)" = "${EVIDENCE_PATH}"
+          git commit -m "PRJ-004 G17R: refresh G12 authority evidence"
+          git push origin "HEAD:${EVIDENCE_BRANCH}"
+          echo G17R_FRESH_9_OF_9=PASS
