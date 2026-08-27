@@ -1,0 +1,46 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-19",
+  "artifact": "G18_BASELINE_REENTRY_CONTRACT",
+  "version": "1.0",
+  "status": "REENTRY_ESTABLISHED_NON_PRODUCTION_ONLY",
+  "authoritative_baseline": {
+    "identity": "EXACT_MAIN_SHA",
+    "sha": "d60ee283b7c87b882b406001ba86205ae5714179",
+    "tree_sha": "f03df3bf0b10e1c69214a755f1fe597749f2d8a4",
+    "launcher_blob_sha": "02e4a4b0964482e17279ec4e67694899cf0cec2d",
+    "accepted_pointer_ref": "authority/prj-004-accepted-production",
+    "baseline_pointer": "baseline/prj-004-dashboard-3.0-g18-d60ee283",
+    "baseline_pointer_is_authority": false
+  },
+  "production_runtime": {
+    "app_id": "c3l-dashboard-3-0-g17r-v3-candidate-jpoi50",
+    "exact_version": "1787867256702",
+    "mutation_in_g19": "FORBIDDEN"
+  },
+  "g19_scope": {
+    "post_release_observation": "READ_FIRST",
+    "presentation_only_candidate": true,
+    "allowed_user_visible_delta": "Replace stale context label PRJ-004 · NON-PRODUCTION v3 with production-appropriate text only",
+    "authority_delta": "FORBIDDEN",
+    "security_delta": "FORBIDDEN",
+    "runtime_semantic_delta": "FORBIDDEN",
+    "backend_delta": "FORBIDDEN",
+    "normalized_adapter_delta": "FORBIDDEN",
+    "production_promotion": false
+  },
+  "candidate_isolation": {
+    "separate_app_required": true,
+    "production_app_update_forbidden": true,
+    "main_write_forbidden": true,
+    "accepted_pointer_write_forbidden": true
+  },
+  "acceptance": {
+    "production_observation_required": true,
+    "source_equivalence_except_label_required": true,
+    "browser_semantic_parity_required": true,
+    "fail_closed_required": true,
+    "zero_unauthorized_application_writes_required": true,
+    "unknown_never_equals_pass": true
+  }
+}
