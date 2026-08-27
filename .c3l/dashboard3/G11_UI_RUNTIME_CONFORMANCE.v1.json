@@ -21,6 +21,12 @@
     "direct_authoritative_source_fetch_absent": "REQUIRED_PASS",
     "mobile_boundary_and_drawer": "REQUIRED_PASS"
   },
+  "reentry_compatibility": {
+    "g08_core_proofs_must_remain_present": true,
+    "successor_slice_may_add_stricter_proofs": true,
+    "candidate_runtime_may_be_isolated_https_appdeploy": true,
+    "production_baseline_smoke_runtime_remains_locked": true
+  },
   "acceptance": {
     "g10_runtime_conformance": "REQUIRED_PASS",
     "g08_locked_baseline_guard": "REQUIRED_PASS",
