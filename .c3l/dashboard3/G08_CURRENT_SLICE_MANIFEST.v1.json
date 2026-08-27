@@ -1,8 +1,8 @@
 {
   "project_id": "PRJ-004",
   "contract_version": "1.0",
-  "slice_id": "G09-IA-WF-001",
-  "slice_type": "INFORMATION_ARCHITECTURE_WIREFRAME",
+  "slice_id": "G10-UI-COMPONENT-CONTRACT-001",
+  "slice_type": "WIREFRAME_ACCEPTANCE_UI_COMPONENT_CONTRACT",
   "baseline_sha": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
   "candidate_sha_source": "GITHUB_SHA",
   "candidate_branch": "prj-004/g08-development-reentry",
@@ -10,10 +10,10 @@
   "promotion_requested": false,
   "changed_scope": [
     "G08 locked-baseline re-entry control artifacts retained",
-    "Dashboard 3.0 Information Architecture candidate v0.1",
-    "Lite and Full low-fidelity wireframe candidate v0.1",
-    "human-readable IA/wireframe review document",
-    "G09 machine validation workflow"
+    "G09 IA and Lite/Full wireframe formally accepted as design input",
+    "Reusable UI component contract candidate v0.1",
+    "Human-readable G10 component contract review document",
+    "G10 machine validation workflow"
   ],
   "protected_domains_touched": [],
   "required_proofs": {
