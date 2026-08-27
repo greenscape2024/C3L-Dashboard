@@ -1,0 +1,30 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-11",
+  "artifact": "UI_RUNTIME_CONFORMANCE_CONTRACT",
+  "version": "1.0",
+  "status": "CANDIDATE",
+  "required_g10_components": 7,
+  "required_runtime_proofs": {
+    "status_card": "REQUIRED_PASS",
+    "evidence_drawer": "REQUIRED_PASS",
+    "module_graph_node_edge": "REQUIRED_PASS",
+    "alert_row": "REQUIRED_PASS",
+    "lite_full_mode_switch": "REQUIRED_PASS",
+    "ownership_badge": "REQUIRED_PASS",
+    "organizer_agent_boundary": "REQUIRED_PASS",
+    "lite_full_semantic_parity": "REQUIRED_PASS",
+    "fail_closed_unknown_stale_blocked": "REQUIRED_PASS",
+    "missing_evidence_not_synthesized": "REQUIRED_PASS",
+    "cross_owner_write_absent": "REQUIRED_PASS",
+    "route_mutation_control_absent": "REQUIRED_PASS",
+    "direct_authoritative_source_fetch_absent": "REQUIRED_PASS",
+    "mobile_boundary_and_drawer": "REQUIRED_PASS"
+  },
+  "acceptance": {
+    "g10_runtime_conformance": "REQUIRED_PASS",
+    "g08_locked_baseline_guard": "REQUIRED_PASS",
+    "same_candidate_sha": true,
+    "production_promotion": false
+  }
+}
