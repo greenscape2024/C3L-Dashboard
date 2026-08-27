@@ -1,0 +1,61 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-17R",
+  "artifact": "RELEASE_BASELINE_AUTHORITY_CONTRACT",
+  "version": "1.0",
+  "status": "NONPRODUCTION_CONTRACT_CANDIDATE",
+  "production_mutation_authorized": false,
+  "release_authority": {
+    "repository": "greenscape2024/C3L-Dashboard",
+    "main_ref": "refs/heads/main",
+    "accepted_production_pointer_ref": "refs/heads/authority/prj-004-accepted-production",
+    "authority_semantics": "The exact commit SHA targeted by accepted_production_pointer_ref is the currently accepted production baseline authority.",
+    "current_accepted_sha": "913a1cfb711ac6fe53a7a681c23682e1e9ea9b0d",
+    "pointer_is_mutable_authority": true,
+    "pointer_is_immutable_baseline": false,
+    "main_is_not_mutated_by_pointer_advance": true
+  },
+  "release_gate_rule": {
+    "pass": "resolved(main_ref).sha == resolved(accepted_production_pointer_ref).sha",
+    "fail": "both refs resolve and SHAs differ",
+    "unknown": "either ref cannot be independently resolved",
+    "unknown_never_equals_pass": true,
+    "hardcoded_premerge_sha_forbidden": true
+  },
+  "promotion_sequence": [
+    "1_EXPLICIT_EXACT_CANDIDATE_AUTHORIZATION",
+    "2_PROMOTE_EXACT_CANDIDATE_AND_OBTAIN_NEW_MAIN_SHA",
+    "3_INDEPENDENT_HOSTING_AND_SECURITY_READBACK",
+    "4_ATOMICALLY_ADVANCE_ACCEPTED_PRODUCTION_POINTER_TO_EXACT_NEW_MAIN_SHA_WITHOUT_WRITING_MAIN",
+    "5_REPROVE_RELEASE_GATE_AND_OVERALL_HEALTH",
+    "6_LOCK_ACCEPTANCE_EVIDENCE"
+  ],
+  "pointer_update_policy": {
+    "update_mechanism": "single Git ref update",
+    "expected_force": false,
+    "required_target": "exact authorized and independently read-back production main SHA",
+    "no_guessing": true,
+    "no_branch_name_only_acceptance": true,
+    "rollback_requires_explicit_authorization": true
+  },
+  "failure_policy": {
+    "pointer_unavailable": "REP-03=UNKNOWN_OR_BLOCKED; SYS-01!=PASS",
+    "main_unavailable": "REP-03=UNKNOWN_OR_BLOCKED; SYS-01!=PASS",
+    "sha_mismatch": "REP-03=FAIL; SYS-01!=PASS",
+    "stale_authority_evidence": "FAIL_CLOSED",
+    "security_or_boundary_regression": "FAIL_CLOSED"
+  },
+  "proof_plan": {
+    "canonical_pointer_initial_match": true,
+    "isolated_v3_runtime_required": true,
+    "simulation_main_ref": "refs/heads/proof/prj-004-g17r-sim-main",
+    "simulation_pointer_ref": "refs/heads/proof/prj-004-g17r-sim-baseline",
+    "required_sequence": [
+      "INITIAL_MATCH_PASS",
+      "SIMULATED_PROMOTION_MAIN_ADVANCE_POINTER_UNCHANGED_FAIL",
+      "ATOMIC_POINTER_ADVANCE_MAIN_UNCHANGED",
+      "POST_POINTER_ADVANCE_PASS"
+    ],
+    "production_main_must_remain": "913a1cfb711ac6fe53a7a681c23682e1e9ea9b0d"
+  }
+}
