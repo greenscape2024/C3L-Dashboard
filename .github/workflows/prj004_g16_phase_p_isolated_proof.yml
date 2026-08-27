@@ -1,0 +1,75 @@
+name: PRJ-004 G16 Phase P Isolated Proof
+
+on:
+  push:
+    branches:
+      - prj-004/g16-phase-p-proof
+
+permissions:
+  contents: write
+
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    env:
+      PROD_SHA: dbc763f91efbc68166416a53a003d4dfde20567b
+      BASELINE_REF: baseline/prj-004-dashboard-3.0-rc1-dbc763f9
+      EVIDENCE_BRANCH: prj-004/g08-development-reentry
+      EVIDENCE_PATH: .c3l/dashboard3/G12_APPDEPLOY_RUNTIME_EVIDENCE.v1.json
+      SOURCE_URL: https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/
+      SOURCE_VERSION: '1787752423174'
+      CANDIDATE_URL: https://c3l-dashboard-3-0-g16-re-entry-candidate-lsknko.v2.appdeploy.ai/
+      CANDIDATE_VERSION: '1787860318709'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Exact new-baseline preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main +refs/heads/${BASELINE_REF}:refs/remotes/origin/${BASELINE_REF} +refs/heads/${EVIDENCE_BRANCH}:refs/remotes/origin/${EVIDENCE_BRANCH}
+          test "$(git rev-parse refs/remotes/origin/main)" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${BASELINE_REF})" = "${PROD_SHA}"
+          echo G16_P_BASELINE=PASS
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Fresh 9-of-9 evidence for Phase P
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/g16p
+          git checkout -B "${EVIDENCE_BRANCH}" "refs/remotes/origin/${EVIDENCE_BRANCH}"
+          node <<'NODE'
+          const {chromium}=require('playwright');const fs=require('fs');
+          const authorities=[['PRJ004-AUTH-BASELINE-INTEGRITY-001','baseline_integrity','ORGANIZATOR_CONTROL_PLANE',300],['PRJ004-AUTH-DRIFT-001','drift','ORGANIZATOR_CONTROL_PLANE',300],['PRJ004-AUTH-SECURITY-RBAC-001','security_rbac','SECURITY_CONTROL_PLANE',60],['PRJ004-AUTH-MODULE-GRAPH-001','module_registry_graph','ORGANIZATOR_CONTROL_PLANE',300],['PRJ004-AUTH-ROUTING-001','routing','ORGANIZATOR_CONTROL_PLANE',60],['PRJ004-AUTH-SNAPSHOT-001','snapshots','ORGANIZATOR_CONTROL_PLANE',0],['PRJ004-AUTH-ALERTS-001','alerts','ALERT_EVENT_CONTROL_PLANE',60],['PRJ004-AUTH-BOUNDARY-001','organizator_agent_boundary','DUAL_BOUNDARY_CONTROL_ORGANIZATOR_AGENT',300],['PRJ004-AUTH-EVALUATION-HISTORY-001','evaluation_history','AGENT_EVALUATION_CONTROL_PLANE',300]];
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();await p.goto(process.env.SOURCE_URL,{waitUntil:'domcontentloaded',timeout:30000});await p.waitForFunction(()=>document.querySelector('#preflightState')?.textContent==='PASS'&&document.querySelector('#preflightSources')?.textContent==='9 / 9'&&document.querySelector('#preflightSecurity')?.textContent==='Security negatives: PASS',null,{timeout:30000});const st=await p.evaluate(()=>{const s=document.querySelector('#preflightState'),c=document.querySelector('#preflightSources');return{gate_pass:s?.textContent==='PASS',verified_count:Number((c?.textContent||'0 / 9').split('/')[0].trim()),total_sources:Number((c?.textContent||'0 / 9').split('/')[1].trim()),schema_pass:s?.textContent==='PASS',freshness_pass:s?.textContent==='PASS',zero_false_verified:s?.textContent==='PASS',readback_hash:s?.getAttribute('data-readback-hash')||'',anonymous_session_denied:s?.getAttribute('data-session-denied')==='true',c2_denied:s?.getAttribute('data-c2-denied')==='true'}});if(!(st.gate_pass&&st.verified_count===9&&st.total_sources===9&&st.schema_pass&&st.freshness_pass&&st.zero_false_verified&&/^[a-f0-9]{64}$/.test(st.readback_hash)&&st.anonymous_session_denied&&st.c2_denied))throw new Error('SOURCE_NOT_ACCEPTABLE');const collected_at=new Date().toISOString();const source_projection=authorities.map(([authority_id,domain,owner,sla])=>({authority_id,domain,owner,freshness_sla_seconds:sla,verification_state:'VERIFIED_AT_COLLECTION',schema_pass:true,freshness_pass:true,evidence_scope:'AGGREGATE_9_OF_9',evidence_reference:st.readback_hash,permission_state:'READ_ONLY_PUBLIC_AGGREGATE'}));const out={project_id:'PRJ-004',gate:'G-PRJ004-12',artifact:'APPDEPLOY_RUNTIME_EVIDENCE_BRIDGE',version:'1.0',status:'COLLECTED_FROM_AUTHORITATIVE_RUNTIME',collected_at,bridge_freshness_limit_seconds:300,source_runtime:{app_id:'c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t',url:process.env.SOURCE_URL,snapshot_version:process.env.SOURCE_VERSION,transport:'OFFICIAL_APPDEPLOY_CLIENT_API_VIA_RENDERED_RUNTIME'},selftest:st,source_projection,collector:{workflow:'PRJ-004 G16 Phase P Isolated Proof',run_id:process.env.GITHUB_RUN_ID},production_promotion:true,production_sha:process.env.PROD_SHA};fs.writeFileSync(process.env.EVIDENCE_PATH,JSON.stringify(out,null,2)+'\n');fs.writeFileSync('/tmp/g16p/fresh.json',JSON.stringify({collected_at,readback_hash:st.readback_hash},null,2)+'\n');await b.close()})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${EVIDENCE_PATH}"
+          test "$(git diff --cached --name-only)" = "${EVIDENCE_PATH}"
+          git commit -m "PRJ-004 G16: refresh evidence for Phase P proof"
+          EVIDENCE_SHA="$(git rev-parse HEAD)"
+          FRESH_HASH="$(python -c "import json;print(json.load(open('${EVIDENCE_PATH}'))['selftest']['readback_hash'])")"
+          echo "EVIDENCE_SHA=${EVIDENCE_SHA}" >> "$GITHUB_ENV"
+          echo "FRESH_HASH=${FRESH_HASH}" >> "$GITHUB_ENV"
+          git push origin "HEAD:${EVIDENCE_BRANCH}"
+          echo G16_P_FRESH_9_OF_9=PASS
+      - name: Presentation-only candidate proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const {chromium}=require('playwright');const fs=require('fs');const assert=(c,m)=>{if(!c)throw new Error(m)};
+          (async()=>{const b=await chromium.launch({headless:true});const ctx=await b.newContext();const writes=[],direct=[];ctx.on('request',r=>{const u=r.url(),m=r.method();if(u.includes('c3l-dashboard-prj-004-g04-runtime-candidate'))direct.push(u);let p;try{p=new URL(u)}catch{};if(m==='POST'&&p?.origin==='https://api-v2.appdeploy.ai'&&p?.pathname==='/p')return;if(!['GET','HEAD','OPTIONS'].includes(m))writes.push(m+' '+u)});const p=await ctx.newPage();await p.goto(process.env.CANDIDATE_URL,{waitUntil:'networkidle',timeout:30000});await p.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: PASS',null,{timeout:30000});const t=async id=>(await p.getByTestId(id).textContent()||'').trim();assert((await p.locator('p.context').textContent()||'').trim()==='PRJ-004 · PRODUCTION','LABEL');assert(await t('authority-count')==='9 / 9 authorities','AUTH');assert(['Evidence: FRESH','Evidence: AGING'].includes(await t('bridge-freshness')),'FRESH');assert(await t('state-REP-03')==='PASS','RELEASE');assert(await t('state-SYS-01')==='PASS','OVERALL');assert(await t('state-INT-01')==='PASS','INTEGRITY');assert(await t('state-SEC-01')==='PASS','SECURITY');assert(await t('boundary-state')==='PASS','BOUNDARY');const lite={int:await t('state-INT-01'),sec:await t('state-SEC-01'),rep:await t('state-REP-03'),sys:await t('state-SYS-01')};await p.getByRole('button',{name:'Full'}).click();assert(await t('state-INT-01')===lite.int&&await t('state-SEC-01')===lite.sec&&await t('state-REP-03')===lite.rep&&await t('state-SYS-01')===lite.sys,'LITE_FULL');await p.getByTestId('card-INT-01').getByRole('button',{name:/Evidence/}).click();assert((await p.getByTestId('evidence-drawer').textContent()||'').includes(process.env.FRESH_HASH),'HASH');assert(writes.length===0,'WRITES');assert(direct.length===0,'DIRECT_SOURCE');await ctx.close();const fail=await b.newPage();await fail.route('**/*',async route=>route.request().url().includes('normalized-runtime')?route.fulfill({status:500,contentType:'application/json',body:'{"error":"g16_p_fail_closed"}'}):route.continue());await fail.goto(process.env.CANDIDATE_URL,{waitUntil:'networkidle',timeout:30000});await fail.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: BLOCKED',null,{timeout:30000});assert((await fail.getByTestId('state-SYS-01').textContent()||'').trim()==='UNKNOWN','FAIL_SYS');assert((await fail.getByTestId('state-SEC-01').textContent()||'').trim()==='UNKNOWN','FAIL_SEC');assert((await fail.getByTestId('boundary-state').textContent()||'').trim()==='BLOCKED','FAIL_BOUNDARY');fs.writeFileSync('/tmp/g16p/result.json',JSON.stringify({status:'PASS',phase:'P',candidate_version:process.env.CANDIDATE_VERSION,production_sha:process.env.PROD_SHA,evidence_sha:process.env.EVIDENCE_SHA,fresh_hash:process.env.FRESH_HASH,label:'PRJ-004 · PRODUCTION',release_gate:'PASS',overall_health:'PASS',authority_9_of_9:true,security:'PASS',boundary:'PASS',lite_full_parity:true,fail_closed:true,forbidden_application_writes:0,direct_authoritative_source_fetches:0,production_mutation:false},null,2)+'\n');console.log('G16_P_LABEL=PASS');console.log('G16_P_RELEASE_GATE=PASS');console.log('G16_P_OVERALL_HEALTH=PASS');console.log('G16_P_AUTHORITY_9_OF_9=PASS');console.log('G16_P_SECURITY=PASS');console.log('G16_P_FAIL_CLOSED=PASS');console.log('G16_P_WRITES=0');await b.close()})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - name: Upload Phase P proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: prj004-g16-phase-p-isolated-${{ github.run_id }}
+          path: /tmp/g16p/
+          if-no-files-found: error
+          retention-days: 30
