@@ -1,0 +1,36 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-15",
+  "artifact": "POST_RELEASE_PRODUCTION_VERIFICATION",
+  "version": "1.0",
+  "status": "PASS",
+  "production_sha": "dbc763f91efbc68166416a53a003d4dfde20567b",
+  "production_url": "https://greenscape2024.github.io/C3L-Dashboard/",
+  "launcher_blob": "0439d5bab58a630f387803c77f0181722a2fd9f6",
+  "rc_id": "PRJ004-DASHBOARD3-RC1",
+  "rc_tag": "prj004-dashboard3-rc1-g13-1787841095588",
+  "freeze_sha": "934da49f076abd2e1f8df6da38b3ceff85fe3b11",
+  "runtime_version": "1787841095588",
+  "runtime_url": "https://c3l-dashboard-3-0-g12-runtime-adapter-candidate-snhzg1.v2.appdeploy.ai/",
+  "fresh_evidence_sha": "ad91efbbe1b2ae577077fae904739843fb5024d9",
+  "fresh_readback_hash": "6d0946cfa1897f7ac92f09af6f06e3f21341f85bc40fc8ecfa534a184c431dec",
+  "pages_deployment_run_id": "33106316487",
+  "browser_proofs": {
+    "canonical_pages_to_rc1": true,
+    "hostile_input_contained": true,
+    "authority_9_of_9": true,
+    "lite_full_parity": true,
+    "oa_boundary": true,
+    "fail_closed": true,
+    "forbidden_application_writes": 0,
+    "direct_authoritative_source_fetches": 0
+  },
+  "rollback_reference": {
+    "git_sha": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+    "git_ref": "baseline/prj-004-dashboard-3.0-b7d46b80",
+    "launcher_blob": "72a271328d0ead519c853a2842d6d565463ca994",
+    "appdeploy": "AppDeploy:v11:1787752423174"
+  },
+  "rollback_executed": false,
+  "production_readback": "PASS"
+}
