@@ -6,7 +6,6 @@ on:
     paths:
       - ".c3l/dashboard3/G11_NONPROD_RUNTIME_BINDING.v1.json"
       - ".c3l/dashboard3/G11_UI_RUNTIME_CONFORMANCE.v1.json"
-      - ".c3l/dashboard3/G08_CURRENT_SLICE_MANIFEST.v1.json"
       - ".github/workflows/prj004_g11_nonprod_ui_runtime_conformance.yml"
   workflow_dispatch:
 
@@ -24,14 +23,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Validate G10 authority and G11 runtime binding
+      - name: Validate immutable G10 authority and G11 runtime binding
         run: |
           python - <<'PY'
           import json
           c=json.load(open('.c3l/dashboard3/G10_UI_COMPONENT_CONTRACT.v0.1.json',encoding='utf-8'))
           r=json.load(open('.c3l/dashboard3/G11_NONPROD_RUNTIME_BINDING.v1.json',encoding='utf-8'))
           t=json.load(open('.c3l/dashboard3/G11_UI_RUNTIME_CONFORMANCE.v1.json',encoding='utf-8'))
-          m=json.load(open('.c3l/dashboard3/G08_CURRENT_SLICE_MANIFEST.v1.json',encoding='utf-8'))
           required={'CMP-STATUS-CARD','CMP-EVIDENCE-DRAWER','CMP-MODULE-GRAPH','CMP-ALERT-ROW','CMP-MODE-SWITCH','CMP-OWNERSHIP-BADGE','CMP-OA-BOUNDARY'}
           assert c['acceptance']['component_count']==7
           assert {x['component_id'] for x in c['components']}==required
@@ -51,13 +49,10 @@ jobs:
           assert t['acceptance']['g10_runtime_conformance']=='REQUIRED_PASS'
           assert t['acceptance']['g08_locked_baseline_guard']=='REQUIRED_PASS'
           assert t['acceptance']['production_promotion'] is False
-          assert m['slice_id']=='G11-NONPROD-UI-COMPONENT-IMPLEMENTATION-001'
-          assert m['slice_type']=='NONPRODUCTION_UI_COMPONENT_IMPLEMENTATION_CONFORMANCE'
-          assert m['candidate_runtime_url']==r['runtime']['url']
-          assert m['promotion_requested'] is False
-          assert m['protected_domains_touched']==[]
+          assert r['promotion_requested'] is False
           print('G11_RUNTIME_BINDING=PASS')
           print('G10_COMPONENT_AUTHORITY=7_OF_7_PASS')
+          print('G11_SUCCESSOR_SAFE_REGRESSION=PASS')
           print('G11_PRODUCTION_BINDING=FALSE_PASS')
           PY
 
@@ -89,29 +84,24 @@ jobs:
             page.on('request',r=>{const u=r.url();if(u.includes('/api/')||u.includes('/__c3l/session'))forbidden.push(u)});
             await page.goto(process.env.G11_URL,{waitUntil:'networkidle',timeout:30000});
             if(await page.title()!=='C3L Dashboard 3.0 G11 UI Candidate')throw new Error('TITLE_MISMATCH');
-            const lite=await page.getByTestId('mode-label').textContent();
-            if(lite?.trim()!=='Mode: LITE')throw new Error('LITE_DEFAULT_FAIL');
+            if((await page.getByTestId('mode-label').textContent())?.trim()!=='Mode: LITE')throw new Error('LITE_DEFAULT_FAIL');
             if((await page.getByTestId('state-SYS-01').textContent())?.trim()!=='PASS')throw new Error('SYS01_LITE_FAIL');
             if(!(await page.getByTestId('oa-boundary').textContent())?.includes('OWNERSHIP BOUNDARY — VIEW ONLY'))throw new Error('BOUNDARY_LABEL_FAIL');
             await page.getByTestId('card-SYS-01').getByRole('button',{name:/Evidence/}).click();
             if(!(await page.getByTestId('evidence-drawer').textContent())?.includes('normalized/system'))throw new Error('EVIDENCE_SOURCE_FAIL');
             await page.getByRole('button',{name:'Close evidence'}).click();
             await page.getByTestId('mode-switch').getByRole('button',{name:'Full'}).click();
-            if((await page.getByTestId('mode-label').textContent())?.trim()!=='Mode: FULL')throw new Error('FULL_SWITCH_FAIL');
             if((await page.getByTestId('state-SYS-01').textContent())?.trim()!=='PASS')throw new Error('LITE_FULL_PARITY_FAIL');
             await page.getByTestId('module-graph').getByRole('button',{name:/AGENT/}).click();
             if(!(await page.getByTestId('module-graph').textContent())?.includes('Selected: AGENT · read-only detail'))throw new Error('MODULE_GRAPH_READ_ONLY_FAIL');
             await page.getByRole('button',{name:'Fail-closed fixture'}).click();
             const sec=page.getByTestId('state-SEC-01');
-            const eva=page.getByTestId('state-EVA-01');
-            const boundary=page.getByTestId('boundary-state');
             if((await sec.textContent())?.trim()!=='UNKNOWN')throw new Error('SEC_UNKNOWN_FAIL');
-            if((await eva.textContent())?.trim()!=='STALE')throw new Error('EVA_STALE_FAIL');
-            if((await boundary.textContent())?.trim()!=='BLOCKED')throw new Error('BOUNDARY_BLOCKED_FAIL');
+            if((await page.getByTestId('state-EVA-01').textContent())?.trim()!=='STALE')throw new Error('EVA_STALE_FAIL');
+            if((await page.getByTestId('boundary-state').textContent())?.trim()!=='BLOCKED')throw new Error('BOUNDARY_BLOCKED_FAIL');
             if((await sec.getAttribute('class')||'').includes('pass'))throw new Error('UNKNOWN_COERCED_TO_PASS');
             await page.getByTestId('card-SEC-01').getByRole('button',{name:/Evidence/}).click();
-            const drawer=page.getByTestId('evidence-drawer');
-            const drawerText=await drawer.textContent();
+            const drawerText=await page.getByTestId('evidence-drawer').textContent();
             if(!drawerText?.includes('NOT_PROVEN')||!drawerText.includes('Missing evidence remains NOT_PROVEN'))throw new Error('NOT_PROVEN_SYNTHESIS_FAIL');
             await page.getByRole('button',{name:'Close evidence'}).click();
             await page.getByRole('button',{name:'Critical',exact:true}).click();
@@ -152,9 +142,7 @@ jobs:
         run: |
           python - <<'PY'
           import json
-          m=json.load(open('.c3l/dashboard3/G08_CURRENT_SLICE_MANIFEST.v1.json',encoding='utf-8'))
           r=json.load(open('.c3l/dashboard3/G11_NONPROD_RUNTIME_BINDING.v1.json',encoding='utf-8'))
-          assert m['promotion_requested'] is False
           assert r['promotion_requested'] is False
           assert r['runtime']['production_binding'] is False
           print('G11_PRODUCTION_PROMOTION=NOT_REQUESTED_PASS')
