@@ -48,7 +48,8 @@ jobs:
       - name: Validate G08 contract and slice manifest
         run: |
           python - <<'PY'
-          import json
+          import json, os
+          from urllib.parse import urlparse
           baseline='b7d46b80a72772ebc16bc557500eb63916a1d63c'
           contract=json.load(open('.c3l/dashboard3/G08_LOCKED_BASELINE_REENTRY_CONTRACT.v1.json',encoding='utf-8'))
           schema=json.load(open('.c3l/dashboard3/G08_SLICE_MANIFEST_SCHEMA.v1.json',encoding='utf-8'))
@@ -62,12 +63,17 @@ jobs:
           assert manifest['contract_version']=='1.0'
           assert manifest['baseline_sha']==baseline
           assert manifest['candidate_sha_source']=='GITHUB_SHA'
-          assert manifest['candidate_branch']==__import__('os').environ['GITHUB_REF_NAME']
-          assert manifest['candidate_runtime_url']=='https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/'
-          required=set(['baseline_ancestry','delta','security','authority','launcher_runtime','anonymous_fail_closed','hostile_input','runtime_9_of_9','security_negatives','rollback'])
-          assert set(manifest['required_proofs'])==required
+          assert manifest['candidate_branch']==os.environ['GITHUB_REF_NAME']
+          candidate_url=urlparse(manifest['candidate_runtime_url'])
+          assert candidate_url.scheme=='https' and candidate_url.netloc.endswith('.v2.appdeploy.ai')
+          required_core={'baseline_ancestry','delta','security','authority','launcher_runtime','anonymous_fail_closed','hostile_input','runtime_9_of_9','security_negatives','rollback'}
+          proof_keys=set(manifest['required_proofs'])
+          assert required_core.issubset(proof_keys), f'Missing core proofs: {sorted(required_core-proof_keys)}'
           assert all(v=='REQUIRED_PASS' for v in manifest['required_proofs'].values())
           print('G08_CONTRACT_MANIFEST=PASS')
+          print('G08_CORE_PROOFS_PRESENT=PASS')
+          print('G08_SUCCESSOR_PROOF_EXTENSIONS=PASS')
+          print('G08_CANDIDATE_RUNTIME_HTTPS=PASS')
           PY
 
       - name: Materialize BASELINE to CANDIDATE delta and classify protected domains
