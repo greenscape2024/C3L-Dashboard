@@ -1,0 +1,72 @@
+name: PRJ-004 G16 Phase R Isolated Proof
+
+on:
+  push:
+    branches:
+      - prj-004/g16-phase-r-proof
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    env:
+      PROD_SHA: dbc763f91efbc68166416a53a003d4dfde20567b
+      BASELINE_REF: baseline/prj-004-dashboard-3.0-rc1-dbc763f9
+      EVIDENCE_BRANCH: prj-004/g08-development-reentry
+      EVIDENCE_PATH: .c3l/dashboard3/G12_APPDEPLOY_RUNTIME_EVIDENCE.v1.json
+      CANDIDATE_URL: https://c3l-dashboard-3-0-g16-re-entry-candidate-lsknko.v2.appdeploy.ai/
+      CANDIDATE_VERSION: '1787859842098'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Exact baseline and fresh evidence preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main +refs/heads/${BASELINE_REF}:refs/remotes/origin/${BASELINE_REF} +refs/heads/${EVIDENCE_BRANCH}:refs/remotes/origin/${EVIDENCE_BRANCH}
+          test "$(git rev-parse refs/remotes/origin/main)" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${BASELINE_REF})" = "${PROD_SHA}"
+          git show "refs/remotes/origin/${EVIDENCE_BRANCH}:${EVIDENCE_PATH}" > /tmp/evidence.json
+          python - <<'PY'
+          import json,datetime
+          e=json.load(open('/tmp/evidence.json'))
+          now=datetime.datetime.now(datetime.timezone.utc)
+          at=datetime.datetime.fromisoformat(e['collected_at'].replace('Z','+00:00'))
+          age=(now-at).total_seconds()
+          assert e['status']=='COLLECTED_FROM_AUTHORITATIVE_RUNTIME'
+          assert e['selftest']['gate_pass'] is True
+          assert e['selftest']['verified_count']==9 and e['selftest']['total_sources']==9
+          assert e['selftest']['schema_pass'] is True and e['selftest']['freshness_pass'] is True
+          assert e['selftest']['zero_false_verified'] is True
+          assert e['selftest']['anonymous_session_denied'] is True and e['selftest']['c2_denied'] is True
+          assert len(e['source_projection'])==9
+          assert age <= e['bridge_freshness_limit_seconds'], f'evidence age {age}s exceeds limit'
+          print(f'G16_R_EVIDENCE_AGE_SECONDS={age:.1f}')
+          print('G16_R_FRESH_9_OF_9=PASS')
+          print('G16_R_FRESH_HASH='+e['selftest']['readback_hash'])
+          PY
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Phase R candidate semantic proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/g16r
+          FRESH_HASH="$(python -c "import json;print(json.load(open('/tmp/evidence.json'))['selftest']['readback_hash'])")"
+          export FRESH_HASH
+          node <<'NODE'
+          const {chromium}=require('playwright');const fs=require('fs');const assert=(c,m)=>{if(!c)throw new Error(m)};
+          (async()=>{const b=await chromium.launch({headless:true});const ctx=await b.newContext();const writes=[],direct=[];ctx.on('request',r=>{const u=r.url(),m=r.method();if(u.includes('c3l-dashboard-prj-004-g04-runtime-candidate'))direct.push(u);let p;try{p=new URL(u)}catch{};if(m==='POST'&&p?.origin==='https://api-v2.appdeploy.ai'&&p?.pathname==='/p')return;if(!['GET','HEAD','OPTIONS'].includes(m))writes.push(m+' '+u)});const p=await ctx.newPage();await p.goto(process.env.CANDIDATE_URL,{waitUntil:'networkidle',timeout:30000});await p.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: PASS',null,{timeout:30000});const t=async id=>(await p.getByTestId(id).textContent()||'').trim();assert(await t('authority-count')==='9 / 9 authorities','AUTH');assert(['Evidence: FRESH','Evidence: AGING'].includes(await t('bridge-freshness')),'FRESH');assert(await t('state-REP-03')==='PASS','RELEASE');assert(await t('state-SYS-01')==='PASS','OVERALL');assert(await t('state-INT-01')==='PASS','INTEGRITY');assert(await t('state-SEC-01')==='PASS','SECURITY');assert(await t('boundary-state')==='PASS','BOUNDARY');assert((await p.locator('p.context').textContent()||'').trim()==='PRJ-004 · G12 NON-PRODUCTION','LABEL_PHASE_R');await p.getByTestId('card-INT-01').getByRole('button',{name:/Evidence/}).click();assert((await p.getByTestId('evidence-drawer').textContent()||'').includes(process.env.FRESH_HASH),'HASH');assert(writes.length===0,'WRITES');assert(direct.length===0,'DIRECT_SOURCE');const fullBefore={int:await t('state-INT-01'),sec:await t('state-SEC-01'),rep:await t('state-REP-03')};await p.getByRole('button',{name:'Full'}).click();assert(await t('state-INT-01')===fullBefore.int,'LITE_FULL_INT');assert(await t('state-SEC-01')===fullBefore.sec,'LITE_FULL_SEC');assert(await t('state-REP-03')===fullBefore.rep,'LITE_FULL_REP');await ctx.close();const fail=await b.newPage();await fail.route('**/*',async route=>route.request().url().includes('normalized-runtime')?route.fulfill({status:500,contentType:'application/json',body:'{"error":"g16_r_fail_closed"}'}):route.continue());await fail.goto(process.env.CANDIDATE_URL,{waitUntil:'networkidle',timeout:30000});await fail.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: BLOCKED',null,{timeout:30000});assert((await fail.getByTestId('state-SYS-01').textContent()||'').trim()==='UNKNOWN','FAIL_SYS');assert((await fail.getByTestId('state-SEC-01').textContent()||'').trim()==='UNKNOWN','FAIL_SEC');assert((await fail.getByTestId('boundary-state').textContent()||'').trim()==='BLOCKED','FAIL_BOUNDARY');fs.writeFileSync('/tmp/g16r/result.json',JSON.stringify({status:'PASS',phase:'R',candidate_version:process.env.CANDIDATE_VERSION,production_sha:process.env.PROD_SHA,fresh_hash:process.env.FRESH_HASH,release_gate:'PASS',overall_health:'PASS',authority_9_of_9:true,security:'PASS',boundary:'PASS',lite_full_parity:true,fail_closed:true,forbidden_application_writes:0,direct_authoritative_source_fetches:0,label:'PRJ-004 · G12 NON-PRODUCTION'},null,2)+'\n');console.log('G16_R_RELEASE_GATE=PASS');console.log('G16_R_OVERALL_HEALTH=PASS');console.log('G16_R_AUTHORITY_9_OF_9=PASS');console.log('G16_R_SECURITY=PASS');console.log('G16_R_BOUNDARY=PASS');console.log('G16_R_FAIL_CLOSED=PASS');console.log('G16_R_WRITES=0');await b.close()})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - name: Upload Phase R proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: prj004-g16-phase-r-isolated-${{ github.run_id }}
+          path: /tmp/g16r/
+          if-no-files-found: error
+          retention-days: 30
