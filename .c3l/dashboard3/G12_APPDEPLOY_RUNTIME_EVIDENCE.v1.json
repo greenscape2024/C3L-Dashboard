@@ -4,7 +4,7 @@
   "artifact": "APPDEPLOY_RUNTIME_EVIDENCE_BRIDGE",
   "version": "1.0",
   "status": "COLLECTED_FROM_AUTHORITATIVE_RUNTIME",
-  "collected_at": "2026-08-27T21:51:53.043Z",
+  "collected_at": "2026-08-27T22:37:52.344Z",
   "bridge_freshness_limit_seconds": 300,
   "source_runtime": {
     "app_id": "c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t",
@@ -19,7 +19,7 @@
     "schema_pass": true,
     "freshness_pass": true,
     "zero_false_verified": true,
-    "readback_hash": "e7e4f22c3e6a6731ed93c42ab7b1a2f659f495f66fb5a3d22eec10ed35bb0d25",
+    "readback_hash": "ba3a9f697d1161514337c5c5f86622d0a94c2d512059ecbe61be376600d9a026",
     "anonymous_session_denied": true,
     "c2_denied": true
   },
@@ -33,7 +33,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "e7e4f22c3e6a6731ed93c42ab7b1a2f659f495f66fb5a3d22eec10ed35bb0d25",
+      "evidence_reference": "ba3a9f697d1161514337c5c5f86622d0a94c2d512059ecbe61be376600d9a026",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -45,7 +45,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "e7e4f22c3e6a6731ed93c42ab7b1a2f659f495f66fb5a3d22eec10ed35bb0d25",
+      "evidence_reference": "ba3a9f697d1161514337c5c5f86622d0a94c2d512059ecbe61be376600d9a026",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -57,7 +57,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "e7e4f22c3e6a6731ed93c42ab7b1a2f659f495f66fb5a3d22eec10ed35bb0d25",
+      "evidence_reference": "ba3a9f697d1161514337c5c5f86622d0a94c2d512059ecbe61be376600d9a026",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -69,7 +69,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "e7e4f22c3e6a6731ed93c42ab7b1a2f659f495f66fb5a3d22eec10ed35bb0d25",
+      "evidence_reference": "ba3a9f697d1161514337c5c5f86622d0a94c2d512059ecbe61be376600d9a026",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -81,7 +81,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "e7e4f22c3e6a6731ed93c42ab7b1a2f659f495f66fb5a3d22eec10ed35bb0d25",
+      "evidence_reference": "ba3a9f697d1161514337c5c5f86622d0a94c2d512059ecbe61be376600d9a026",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -93,7 +93,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "e7e4f22c3e6a6731ed93c42ab7b1a2f659f495f66fb5a3d22eec10ed35bb0d25",
+      "evidence_reference": "ba3a9f697d1161514337c5c5f86622d0a94c2d512059ecbe61be376600d9a026",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -105,7 +105,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "e7e4f22c3e6a6731ed93c42ab7b1a2f659f495f66fb5a3d22eec10ed35bb0d25",
+      "evidence_reference": "ba3a9f697d1161514337c5c5f86622d0a94c2d512059ecbe61be376600d9a026",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -117,7 +117,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "e7e4f22c3e6a6731ed93c42ab7b1a2f659f495f66fb5a3d22eec10ed35bb0d25",
+      "evidence_reference": "ba3a9f697d1161514337c5c5f86622d0a94c2d512059ecbe61be376600d9a026",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -129,7 +129,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "e7e4f22c3e6a6731ed93c42ab7b1a2f659f495f66fb5a3d22eec10ed35bb0d25",
+      "evidence_reference": "ba3a9f697d1161514337c5c5f86622d0a94c2d512059ecbe61be376600d9a026",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     }
   ],
