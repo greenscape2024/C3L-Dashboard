@@ -1,0 +1,40 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-13",
+  "artifact": "RELEASE_CANDIDATE_FREEZE",
+  "version": "1.0",
+  "status": "RELEASE_CANDIDATE_FROZEN_NONPRODUCTION",
+  "rc_id": "PRJ004-DASHBOARD3-RC1",
+  "rc_tag": "prj004-dashboard3-rc1-g13-1787841095588",
+  "g12_accepted_predecessor_sha": "4ff35b72ce4a88f6b46a7bd9c19e781f4d4e874c",
+  "source_candidate_sha": "b22c2a6d46e0a94bb9bda910c8baa623c5574f3f",
+  "ui_runtime": {
+    "provider": "APPDEPLOY",
+    "url": "https://c3l-dashboard-3-0-g12-runtime-adapter-candidate-snhzg1.v2.appdeploy.ai/",
+    "version": "1787841095588",
+    "production_binding": false
+  },
+  "source_evidence_hash": "c9d2545dafbaa54511604e92d79158e1d31539f7f9f3188c68e7adbc8af00a6b",
+  "rollback_reference": {
+    "git_sha": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+    "git_ref": "baseline/prj-004-dashboard-3.0-b7d46b80",
+    "appdeploy": "AppDeploy:v11:1787752423174"
+  },
+  "acceptance": {
+    "fresh_9_of_9": "PASS",
+    "g12_regression": "PASS",
+    "g10_g11_regression": "PASS",
+    "g13_real_data_ux": "PASS",
+    "lite_full": "PASS",
+    "evidence_drawer": "PASS",
+    "module_alert_permissions": "PASS",
+    "organizer_agent_boundary": "PASS",
+    "visual_non_degradation": "PASS",
+    "fail_closed": "PASS"
+  },
+  "freeze_time": "2026-08-27T16:22:05.451054Z",
+  "workflow_run_id": "33092759780",
+  "promotion_requested": false,
+  "production_promotion": false,
+  "main_modified": false
+}
