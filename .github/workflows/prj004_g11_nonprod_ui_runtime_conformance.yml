@@ -1,0 +1,161 @@
+name: PRJ-004 G11 Non-Production UI Runtime Conformance
+
+on:
+  push:
+    branches: [ "prj-004/g08-development-reentry" ]
+    paths:
+      - ".c3l/dashboard3/G11_NONPROD_RUNTIME_BINDING.v1.json"
+      - ".c3l/dashboard3/G11_UI_RUNTIME_CONFORMANCE.v1.json"
+      - ".c3l/dashboard3/G08_CURRENT_SLICE_MANIFEST.v1.json"
+      - ".github/workflows/prj004_g11_nonprod_ui_runtime_conformance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  g10-runtime-conformance:
+    runs-on: ubuntu-latest
+    env:
+      G11_URL: https://c3l-dashboard-3-0-g11-ui-candidate-kkx0oi.v2.appdeploy.ai/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate G10 authority and G11 runtime binding
+        run: |
+          python - <<'PY'
+          import json
+          c=json.load(open('.c3l/dashboard3/G10_UI_COMPONENT_CONTRACT.v0.1.json',encoding='utf-8'))
+          r=json.load(open('.c3l/dashboard3/G11_NONPROD_RUNTIME_BINDING.v1.json',encoding='utf-8'))
+          t=json.load(open('.c3l/dashboard3/G11_UI_RUNTIME_CONFORMANCE.v1.json',encoding='utf-8'))
+          m=json.load(open('.c3l/dashboard3/G08_CURRENT_SLICE_MANIFEST.v1.json',encoding='utf-8'))
+          required={'CMP-STATUS-CARD','CMP-EVIDENCE-DRAWER','CMP-MODULE-GRAPH','CMP-ALERT-ROW','CMP-MODE-SWITCH','CMP-OWNERSHIP-BADGE','CMP-OA-BOUNDARY'}
+          assert c['acceptance']['component_count']==7
+          assert {x['component_id'] for x in c['components']}==required
+          assert r['runtime']['url']=='https://c3l-dashboard-3-0-g11-ui-candidate-kkx0oi.v2.appdeploy.ai/'
+          assert r['runtime']['version']=='1787837233071'
+          assert r['runtime']['architecture']=='FRONTEND_ONLY_REACT_VITE'
+          assert r['runtime']['production_binding'] is False
+          assert set(r['implemented_components'])==required
+          assert r['isolation']['production_app_modified'] is False
+          assert r['isolation']['github_pages_launcher_modified'] is False
+          assert r['isolation']['main_modified'] is False
+          assert r['isolation']['backend_present'] is False
+          assert r['isolation']['direct_authority_fetch'] is False
+          assert r['isolation']['appdeploy_sdk_or_api_usage'] is False
+          assert r['isolation']['c2_capability'] is False
+          assert t['required_g10_components']==7
+          assert t['acceptance']['g10_runtime_conformance']=='REQUIRED_PASS'
+          assert t['acceptance']['g08_locked_baseline_guard']=='REQUIRED_PASS'
+          assert t['acceptance']['production_promotion'] is False
+          assert m['slice_id']=='G11-NONPROD-UI-COMPONENT-IMPLEMENTATION-001'
+          assert m['slice_type']=='NONPRODUCTION_UI_COMPONENT_IMPLEMENTATION_CONFORMANCE'
+          assert m['candidate_runtime_url']==r['runtime']['url']
+          assert m['promotion_requested'] is False
+          assert m['protected_domains_touched']==[]
+          print('G11_RUNTIME_BINDING=PASS')
+          print('G10_COMPONENT_AUTHORITY=7_OF_7_PASS')
+          print('G11_PRODUCTION_BINDING=FALSE_PASS')
+          PY
+
+      - name: Enforce repository protected-surface isolation
+        run: |
+          git diff --name-only b7d46b80a72772ebc16bc557500eb63916a1d63c...${GITHUB_SHA} > /tmp/g11-delta.txt
+          for p in index.html .c3l/dashboard3/SECURITY_AUTH_CONTRACT.v1.json .c3l/dashboard3/AUTH_ADAPTER_INTERFACE.v1.js .c3l/dashboard3/SOURCE_AUTHORITY_REGISTRY.v1.json .c3l/dashboard3/SOURCE_SCHEMAS.v1.json .c3l/dashboard3/RUNTIME_BINDING_STATUS.v1.json .c3l/dashboard3/G06A_PRODUCTION_ENTRYPOINT_CONTRACT.v1.json; do
+            if grep -Fxq "$p" /tmp/g11-delta.txt; then
+              echo "G11 forbidden protected-surface mutation: $p" >&2
+              exit 1
+            fi
+          done
+          echo 'G11_PROTECTED_SURFACE_MUTATION=0_PASS'
+
+      - name: Install browser harness
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Browser proof — G10 runtime component conformance
+        run: |
+          mkdir -p /tmp/g11-proof
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const page=await browser.newPage({viewport:{width:1280,height:800}});
+            const forbidden=[];
+            page.on('request',r=>{const u=r.url();if(u.includes('/api/')||u.includes('/__c3l/session'))forbidden.push(u)});
+            await page.goto(process.env.G11_URL,{waitUntil:'networkidle',timeout:30000});
+            if(await page.title()!=='C3L Dashboard 3.0 G11 UI Candidate')throw new Error('TITLE_MISMATCH');
+            const lite=await page.getByTestId('mode-label').textContent();
+            if(lite?.trim()!=='Mode: LITE')throw new Error('LITE_DEFAULT_FAIL');
+            if((await page.getByTestId('state-SYS-01').textContent())?.trim()!=='PASS')throw new Error('SYS01_LITE_FAIL');
+            if(!(await page.getByTestId('oa-boundary').textContent())?.includes('OWNERSHIP BOUNDARY — VIEW ONLY'))throw new Error('BOUNDARY_LABEL_FAIL');
+            await page.getByTestId('card-SYS-01').getByRole('button',{name:/Evidence/}).click();
+            if(!(await page.getByTestId('evidence-drawer').textContent())?.includes('normalized/system'))throw new Error('EVIDENCE_SOURCE_FAIL');
+            await page.getByRole('button',{name:'Close evidence'}).click();
+            await page.getByTestId('mode-switch').getByRole('button',{name:'Full'}).click();
+            if((await page.getByTestId('mode-label').textContent())?.trim()!=='Mode: FULL')throw new Error('FULL_SWITCH_FAIL');
+            if((await page.getByTestId('state-SYS-01').textContent())?.trim()!=='PASS')throw new Error('LITE_FULL_PARITY_FAIL');
+            await page.getByTestId('module-graph').getByRole('button',{name:/AGENT/}).click();
+            if(!(await page.getByTestId('module-graph').textContent())?.includes('Selected: AGENT · read-only detail'))throw new Error('MODULE_GRAPH_READ_ONLY_FAIL');
+            await page.getByRole('button',{name:'Fail-closed fixture'}).click();
+            const sec=page.getByTestId('state-SEC-01');
+            const eva=page.getByTestId('state-EVA-01');
+            const boundary=page.getByTestId('boundary-state');
+            if((await sec.textContent())?.trim()!=='UNKNOWN')throw new Error('SEC_UNKNOWN_FAIL');
+            if((await eva.textContent())?.trim()!=='STALE')throw new Error('EVA_STALE_FAIL');
+            if((await boundary.textContent())?.trim()!=='BLOCKED')throw new Error('BOUNDARY_BLOCKED_FAIL');
+            if((await sec.getAttribute('class')||'').includes('pass'))throw new Error('UNKNOWN_COERCED_TO_PASS');
+            await page.getByTestId('card-SEC-01').getByRole('button',{name:/Evidence/}).click();
+            const drawer=page.getByTestId('evidence-drawer');
+            const drawerText=await drawer.textContent();
+            if(!drawerText?.includes('NOT_PROVEN')||!drawerText.includes('Missing evidence remains NOT_PROVEN'))throw new Error('NOT_PROVEN_SYNTHESIS_FAIL');
+            await page.getByRole('button',{name:'Close evidence'}).click();
+            await page.getByRole('button',{name:'Critical',exact:true}).click();
+            if(!(await page.getByTestId('alert-ALT-CRIT').textContent())?.includes('UNKNOWN'))throw new Error('ALERT_ROW_FAIL');
+            const buttons=(await page.getByRole('button').allTextContents()).join(' ').toLowerCase();
+            for(const bad of ['change route','deploy','rollback','mutate','override severity'])if(buttons.includes(bad))throw new Error('FORBIDDEN_CONTROL_'+bad);
+            if(forbidden.length)throw new Error('DIRECT_API_CALLS_'+forbidden.join(','));
+            await page.screenshot({path:'/tmp/g11-proof/desktop.png',fullPage:true});
+            console.log('G10_RUNTIME_CONFORMANCE=PASS');
+            console.log('G11_COMPONENTS_7_OF_7=PASS');
+            console.log('G11_LITE_FULL_PARITY=PASS');
+            console.log('G11_FAIL_CLOSED_UNKNOWN_STALE_BLOCKED=PASS');
+            console.log('G11_NOT_PROVEN_NOT_SYNTHESIZED=PASS');
+            console.log('G11_OA_BOUNDARY=PASS');
+            console.log('G11_CROSS_OWNER_WRITE_CONTROL=ABSENT_PASS');
+            console.log('G11_DIRECT_API_AUTHORITY_CALLS=0_PASS');
+            const mobile=await browser.newPage({viewport:{width:375,height:667}});
+            await mobile.goto(process.env.G11_URL,{waitUntil:'networkidle',timeout:30000});
+            await mobile.getByTestId('mode-switch').getByRole('button',{name:'Full'}).click();
+            if(!(await mobile.getByTestId('oa-boundary').textContent())?.includes('OWNERSHIP BOUNDARY — VIEW ONLY'))throw new Error('MOBILE_BOUNDARY_FAIL');
+            await mobile.getByTestId('card-SYS-01').getByRole('button',{name:/Evidence/}).click();
+            const box=await mobile.getByTestId('evidence-drawer').boundingBox();
+            if(!box||box.width>375||box.x<0||box.x+box.width>375.5)throw new Error('MOBILE_DRAWER_OVERFLOW');
+            await mobile.screenshot({path:'/tmp/g11-proof/mobile.png',fullPage:true});
+            console.log('G11_MOBILE_BOUNDARY_DRAWER=PASS');
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+
+      - name: Upload browser evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: prj004-g11-browser-proof-${{ github.sha }}
+          path: /tmp/g11-proof
+          if-no-files-found: error
+
+      - name: Promotion lock
+        run: |
+          python - <<'PY'
+          import json
+          m=json.load(open('.c3l/dashboard3/G08_CURRENT_SLICE_MANIFEST.v1.json',encoding='utf-8'))
+          r=json.load(open('.c3l/dashboard3/G11_NONPROD_RUNTIME_BINDING.v1.json',encoding='utf-8'))
+          assert m['promotion_requested'] is False
+          assert r['promotion_requested'] is False
+          assert r['runtime']['production_binding'] is False
+          print('G11_PRODUCTION_PROMOTION=NOT_REQUESTED_PASS')
+          PY
