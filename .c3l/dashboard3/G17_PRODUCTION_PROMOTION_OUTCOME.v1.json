@@ -1,0 +1,70 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-17",
+  "artifact": "PRODUCTION_PROMOTION_OUTCOME",
+  "version": "1.0",
+  "status": "HOLD_POST_RELEASE_SEMANTIC_ACCEPTANCE_FAILED",
+  "authorized_target": {
+    "app_id": "c3l-dashboard-3-0-g16-re-entry-candidate-lsknko",
+    "snapshot_version": "1787860318709",
+    "exact_target_promoted": true,
+    "substitution_performed": false
+  },
+  "production": {
+    "main_sha": "913a1cfb711ac6fe53a7a681c23682e1e9ea9b0d",
+    "main_tree_sha": "df0055b58d2703c72f19223548c7bff3a4eec907",
+    "launcher_blob_sha": "85ba4eeadb9bbb61410a0a9b40928aeaedcb721a",
+    "launcher_target": "https://c3l-dashboard-3-0-g16-re-entry-candidate-lsknko.v2.appdeploy.ai/",
+    "pages_run_id": 33114709964,
+    "pages_result": "SUCCESS"
+  },
+  "pre_promotion": {
+    "proof_run_id": 33114466789,
+    "result": "SUCCESS",
+    "candidate_baseline_sha": "dbc763f91efbc68166416a53a003d4dfde20567b",
+    "rep_03": "PASS_BEFORE_MAIN_CHANGED",
+    "sys_01": "PASS_BEFORE_MAIN_CHANGED"
+  },
+  "corrected_post_release_diagnostic": {
+    "run_id": 33115344501,
+    "result": "SUCCESS_DIAGNOSTIC_CAPTURE",
+    "fresh_evidence_sha": "6b82c07cbc7fa93a3a40ead87642b7945dee0f86",
+    "canonical": {
+      "runtime_target": "PASS_EXACT_G16_V2",
+      "adapter": "PASS",
+      "authority": "9_OF_9",
+      "freshness": "FRESH",
+      "rep_03": "FAIL",
+      "sys_01": "UNKNOWN",
+      "sec_01": "PASS",
+      "oa_boundary": "PASS",
+      "ui_context": "PRJ-004 · PRODUCTION"
+    },
+    "hostile_input": "CONTAINED_SAME_RESULT",
+    "direct_runtime": "SAME_RESULT"
+  },
+  "harness_correction": {
+    "initial_post_release_collectors_used_wrong_evidence_gate": true,
+    "wrong_gate_effect": "ADAPTER_FAIL_CLOSED_0_OF_9",
+    "corrected_gate": "G-PRJ004-12",
+    "corrected_result": "ADAPTER_PASS_9_OF_9_WITH_RELEASE_GATE_FAIL"
+  },
+  "root_cause": {
+    "classification": "RELEASE_BASELINE_BINDING_DESIGN_GAP",
+    "runtime_baseline_sha": "dbc763f91efbc68166416a53a003d4dfde20567b",
+    "current_main_sha": "913a1cfb711ac6fe53a7a681c23682e1e9ea9b0d",
+    "runtime_rule": "REP-03_PASS_ONLY_WHEN_MAIN_EQUALS_HARDCODED_BASELINE",
+    "cause": "PROMOTION_MERGE_CHANGES_MAIN_SHA_AFTER_CANDIDATE_BASELINE_WAS_FROZEN",
+    "security_regression": false,
+    "authority_regression": false,
+    "routing_regression": false
+  },
+  "decision": {
+    "g17_closed_pass": false,
+    "production_acceptance": "HOLD",
+    "automatic_rollback_performed": false,
+    "new_candidate_version_created": false,
+    "reason_no_automatic_followup_mutation": "USER_AUTHORIZATION_WAS_EXACTLY_V2_1787860318709_ONLY"
+  },
+  "required_remediation_property": "RELEASE_GATE_MUST_BIND_TO_AN_ACCEPTED_PRODUCTION_BASELINE_AUTHORITY_THAT_CAN_ADVANCE_AFTER_PROMOTION_WITHOUT_REQUIRING_MAIN_TO_EQUAL_A_PRE_MERGE_HARDCODED_SHA"
+}
