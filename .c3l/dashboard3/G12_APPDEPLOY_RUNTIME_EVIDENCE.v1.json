@@ -1,10 +1,10 @@
 {
   "project_id": "PRJ-004",
-  "gate": "G-PRJ004-12",
+  "gate": "G-PRJ004-17",
   "artifact": "APPDEPLOY_RUNTIME_EVIDENCE_BRIDGE",
   "version": "1.0",
   "status": "COLLECTED_FROM_AUTHORITATIVE_RUNTIME",
-  "collected_at": "2026-08-27T20:40:57.902Z",
+  "collected_at": "2026-08-27T20:45:41.232Z",
   "bridge_freshness_limit_seconds": 300,
   "source_runtime": {
     "app_id": "c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t",
@@ -19,7 +19,7 @@
     "schema_pass": true,
     "freshness_pass": true,
     "zero_false_verified": true,
-    "readback_hash": "ede20604c0917c64bfcb30020f24d2d6bc8803f9135ed6c21016755b91ae4a22",
+    "readback_hash": "77de6de01fdf2479bafa9f44b7b6668c00e82f6a7eb05bb1c078ceaee911db32",
     "anonymous_session_denied": true,
     "c2_denied": true
   },
@@ -33,7 +33,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "ede20604c0917c64bfcb30020f24d2d6bc8803f9135ed6c21016755b91ae4a22",
+      "evidence_reference": "77de6de01fdf2479bafa9f44b7b6668c00e82f6a7eb05bb1c078ceaee911db32",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -45,7 +45,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "ede20604c0917c64bfcb30020f24d2d6bc8803f9135ed6c21016755b91ae4a22",
+      "evidence_reference": "77de6de01fdf2479bafa9f44b7b6668c00e82f6a7eb05bb1c078ceaee911db32",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -57,7 +57,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "ede20604c0917c64bfcb30020f24d2d6bc8803f9135ed6c21016755b91ae4a22",
+      "evidence_reference": "77de6de01fdf2479bafa9f44b7b6668c00e82f6a7eb05bb1c078ceaee911db32",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -69,7 +69,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "ede20604c0917c64bfcb30020f24d2d6bc8803f9135ed6c21016755b91ae4a22",
+      "evidence_reference": "77de6de01fdf2479bafa9f44b7b6668c00e82f6a7eb05bb1c078ceaee911db32",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -81,7 +81,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "ede20604c0917c64bfcb30020f24d2d6bc8803f9135ed6c21016755b91ae4a22",
+      "evidence_reference": "77de6de01fdf2479bafa9f44b7b6668c00e82f6a7eb05bb1c078ceaee911db32",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -93,7 +93,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "ede20604c0917c64bfcb30020f24d2d6bc8803f9135ed6c21016755b91ae4a22",
+      "evidence_reference": "77de6de01fdf2479bafa9f44b7b6668c00e82f6a7eb05bb1c078ceaee911db32",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -105,7 +105,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "ede20604c0917c64bfcb30020f24d2d6bc8803f9135ed6c21016755b91ae4a22",
+      "evidence_reference": "77de6de01fdf2479bafa9f44b7b6668c00e82f6a7eb05bb1c078ceaee911db32",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -117,7 +117,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "ede20604c0917c64bfcb30020f24d2d6bc8803f9135ed6c21016755b91ae4a22",
+      "evidence_reference": "77de6de01fdf2479bafa9f44b7b6668c00e82f6a7eb05bb1c078ceaee911db32",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -129,14 +129,14 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "ede20604c0917c64bfcb30020f24d2d6bc8803f9135ed6c21016755b91ae4a22",
+      "evidence_reference": "77de6de01fdf2479bafa9f44b7b6668c00e82f6a7eb05bb1c078ceaee911db32",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     }
   ],
   "collector": {
-    "workflow": "PRJ-004 G16 Phase P Isolated Proof",
-    "run_id": "33114466789"
+    "workflow": "PRJ-004 G17 Post-Release Readback",
+    "run_id": "33114845184"
   },
   "production_promotion": true,
-  "production_sha": "dbc763f91efbc68166416a53a003d4dfde20567b"
+  "production_sha": "913a1cfb711ac6fe53a7a681c23682e1e9ea9b0d"
 }
