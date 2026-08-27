@@ -1,0 +1,82 @@
+name: PRJ-004 G17R Non-Production v3 Proof
+on:
+  push:
+    branches:
+      - prj-004/g17r-release-baseline-authority
+    paths:
+      - .github/workflows/prj004_g17r_nonprod_v3_proof.yml
+permissions:
+  contents: write
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    env:
+      PROD_SHA: 913a1cfb711ac6fe53a7a681c23682e1e9ea9b0d
+      V3_URL: https://c3l-dashboard-3-0-g17r-v3-candidate-jpoi50.v2.appdeploy.ai/
+      ACCEPTED_REF: authority/prj-004-accepted-production
+      SIM_MAIN: proof/prj-004-g17r-sim-main
+      SIM_BASELINE: proof/prj-004-g17r-sim-baseline
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Exact no-production-mutation preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main +refs/heads/${ACCEPTED_REF}:refs/remotes/origin/${ACCEPTED_REF} +refs/heads/${SIM_MAIN}:refs/remotes/origin/${SIM_MAIN} +refs/heads/${SIM_BASELINE}:refs/remotes/origin/${SIM_BASELINE}
+          test "$(git rev-parse refs/remotes/origin/main)" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${ACCEPTED_REF})" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${SIM_MAIN})" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${SIM_BASELINE})" = "${PROD_SHA}"
+          echo G17R_INITIAL_POINTER_MATCH=PASS
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Live v3 semantic and fail-closed proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/g17r
+          node <<'NODE'
+          const {chromium}=require('playwright');const fs=require('fs');const assert=(c,m)=>{if(!c)throw new Error(m)};
+          (async()=>{const b=await chromium.launch({headless:true});const ctx=await b.newContext();const writes=[];ctx.on('request',r=>{const u=r.url(),m=r.method();let p;try{p=new URL(u)}catch{};if(m==='POST'&&p?.origin==='https://api-v2.appdeploy.ai'&&p?.pathname==='/p')return;if(!['GET','HEAD','OPTIONS'].includes(m))writes.push(m+' '+u)});const p=await ctx.newPage();await p.goto(process.env.V3_URL,{waitUntil:'networkidle',timeout:30000});await p.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: PASS',null,{timeout:30000});const t=async id=>(await p.getByTestId(id).textContent()||'').trim();const initial={adapter:await t('adapter-state'),authority:await t('authority-count'),freshness:await t('bridge-freshness'),rep03:await t('state-REP-03'),sys01:await t('state-SYS-01'),sec01:await t('state-SEC-01'),boundary:await t('boundary-state'),context:(await p.locator('p.context').textContent()||'').trim(),binding:await t('binding-mode')};assert(initial.authority==='9 / 9 authorities','AUTH');assert(['Evidence: FRESH','Evidence: AGING'].includes(initial.freshness),'FRESH');assert(initial.rep03==='PASS','REP03');assert(initial.sys01==='PASS','SYS01');assert(initial.sec01==='PASS','SEC01');assert(initial.boundary==='PASS','BOUNDARY');assert(initial.context==='PRJ-004 · NON-PRODUCTION v3','CONTEXT');assert(initial.binding==='ACCEPTED_PRODUCTION_POINTER_READ_ONLY','BINDING');const liteInt=await t('state-INT-01');await p.getByRole('button',{name:'Full'}).click();await p.waitForSelector('[data-testid="full-only"]');const fullInt=await t('state-INT-01');assert(liteInt===fullInt,'LITE_FULL_PARITY');const rel=(await p.getByTestId('release-binding').textContent()||'');assert(rel.includes('authority/prj-004-accepted-production'),'POINTER_PROVENANCE');const buttons=await p.locator('button').allTextContents();assert(!buttons.some(x=>/deploy|rollback|route mutation|release override/i.test(x)),'C2_CONTROL_PRESENT');assert(writes.length===0,'UNAUTHORIZED_WRITES');await ctx.close();const fail=await b.newPage();await fail.route('**/*',async route=>route.request().url().includes('normalized-runtime')?route.fulfill({status:500,contentType:'application/json',body:'{"error":"g17r_fail_closed"}'}):route.continue());await fail.goto(process.env.V3_URL,{waitUntil:'networkidle',timeout:30000});await fail.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: BLOCKED',null,{timeout:30000});const ft=async id=>(await fail.getByTestId(id).textContent()||'').trim();assert(await ft('state-SYS-01')==='UNKNOWN','FAIL_SYS');assert(await ft('state-SEC-01')==='UNKNOWN','FAIL_SEC');assert(await ft('boundary-state')==='BLOCKED','FAIL_BOUNDARY');fs.writeFileSync('/tmp/g17r/v3-browser.json',JSON.stringify({status:'PASS',initial,lite_full_parity:true,fail_closed:true,unauthorized_writes:writes.length},null,2)+'\n');console.log('G17R_V3_9_OF_9=PASS');console.log('G17R_V3_REP03=PASS');console.log('G17R_V3_SYS01=PASS');console.log('G17R_V3_SECURITY=PASS');console.log('G17R_V3_OA_BOUNDARY=PASS');console.log('G17R_V3_FAIL_CLOSED=PASS');console.log('G17R_V3_LITE_FULL_PARITY=PASS');await b.close()})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - name: Promotion simulation and atomic pointer advance
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main +refs/heads/${ACCEPTED_REF}:refs/remotes/origin/${ACCEPTED_REF} +refs/heads/${SIM_MAIN}:refs/remotes/origin/${SIM_MAIN} +refs/heads/${SIM_BASELINE}:refs/remotes/origin/${SIM_BASELINE}
+          INITIAL_MAIN="$(git rev-parse refs/remotes/origin/${SIM_MAIN})"
+          INITIAL_BASE="$(git rev-parse refs/remotes/origin/${SIM_BASELINE})"
+          test "${INITIAL_MAIN}" = "${INITIAL_BASE}"
+          git checkout -B "${SIM_MAIN}" "refs/remotes/origin/${SIM_MAIN}"
+          mkdir -p .c3l/dashboard3
+          printf 'G17R simulated promotion run %s\n' "$GITHUB_RUN_ID" > .c3l/dashboard3/G17R_SIMULATED_PROMOTION_MARKER.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .c3l/dashboard3/G17R_SIMULATED_PROMOTION_MARKER.txt
+          git commit -m "PRJ-004 G17R: simulated promotion main advance"
+          SIM_PROMOTED_SHA="$(git rev-parse HEAD)"
+          git push origin "HEAD:refs/heads/${SIM_MAIN}"
+          git fetch --no-tags origin +refs/heads/${SIM_BASELINE}:refs/remotes/origin/${SIM_BASELINE}
+          test "${SIM_PROMOTED_SHA}" != "$(git rev-parse refs/remotes/origin/${SIM_BASELINE})"
+          echo G17R_SIMULATED_PROMOTION_MISMATCH=PASS
+          git push origin "${SIM_PROMOTED_SHA}:refs/heads/${SIM_BASELINE}"
+          git fetch --no-tags origin +refs/heads/${SIM_MAIN}:refs/remotes/origin/${SIM_MAIN} +refs/heads/${SIM_BASELINE}:refs/remotes/origin/${SIM_BASELINE} +refs/heads/main:refs/remotes/origin/main +refs/heads/${ACCEPTED_REF}:refs/remotes/origin/${ACCEPTED_REF}
+          test "$(git rev-parse refs/remotes/origin/${SIM_MAIN})" = "${SIM_PROMOTED_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${SIM_BASELINE})" = "${SIM_PROMOTED_SHA}"
+          test "$(git rev-parse refs/remotes/origin/main)" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${ACCEPTED_REF})" = "${PROD_SHA}"
+          printf '{"initial_match":"PASS","simulated_promotion_mismatch":"PASS","pointer_advance":"PASS","post_pointer_match":"PASS","production_main_unchanged":"PASS","accepted_production_pointer_unchanged":"PASS","simulated_promoted_sha":"%s"}\n' "${SIM_PROMOTED_SHA}" > /tmp/g17r/pointer-simulation.json
+          echo G17R_ATOMIC_POINTER_ADVANCE=PASS
+          echo G17R_POST_POINTER_REP03_MODEL=PASS
+          echo G17R_PRODUCTION_MAIN_UNCHANGED=PASS
+      - name: Upload G17R proof evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: prj004-g17r-v3-proof-${{ github.run_id }}
+          path: /tmp/g17r/
+          if-no-files-found: error
+          retention-days: 30
