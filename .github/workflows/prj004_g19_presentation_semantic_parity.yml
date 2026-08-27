@@ -1,0 +1,77 @@
+name: PRJ-004 G19 Presentation Semantic Parity
+
+on:
+  push:
+    branches:
+      - prj-004/g19-g18-baseline-reentry
+    paths:
+      - .github/workflows/prj004_g19_presentation_semantic_parity.yml
+
+permissions:
+  contents: read
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    env:
+      PROD_SHA: d60ee283b7c87b882b406001ba86205ae5714179
+      ACCEPTED_REF: authority/prj-004-accepted-production
+      BASELINE_REF: baseline/prj-004-dashboard-3.0-g18-d60ee283
+      PAGES_URL: https://greenscape2024.github.io/C3L-Dashboard/
+      PROD_URL: https://c3l-dashboard-3-0-g17r-v3-candidate-jpoi50.v2.appdeploy.ai/
+      CANDIDATE_URL: https://c3l-dashboard-3-0-g19-presentation-candidate-81enqm.v2.appdeploy.ai/
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Lock G18 authority and G19 re-entry lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main +refs/heads/${ACCEPTED_REF}:refs/remotes/origin/${ACCEPTED_REF} +refs/heads/${BASELINE_REF}:refs/remotes/origin/${BASELINE_REF}
+          test "$(git rev-parse refs/remotes/origin/main)" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${ACCEPTED_REF})" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${BASELINE_REF})" = "${PROD_SHA}"
+          git merge-base --is-ancestor "${PROD_SHA}" HEAD
+          git show refs/remotes/origin/main:index.html | grep -F "${PROD_URL}"
+          echo G19_BASELINE_REENTRY_LOCK=PASS
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Compare production and candidate same-state semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/g19-parity
+          node <<'NODE'
+          const {chromium}=require('playwright');const fs=require('fs');const assert=(c,m)=>{if(!c)throw new Error(m)};
+          const core=['SYS-01','INT-01','SEC-01','MOD-02','ROU-01','REP-03','EVA-01','ALT-02','UNI-03'];
+          const full=['SYS-01','INT-01','SEC-01','MOD-02','ROU-01','REP-03','EVA-01','ALT-02','UNI-03','INT-04','SNP-02'];
+          const t=async(p,id)=>(await p.getByTestId(id).textContent()||'').trim();
+          (async()=>{const b=await chromium.launch({headless:true});const ctx=await b.newContext();const writes=[];ctx.on('request',r=>{const u=r.url(),m=r.method();let p;try{p=new URL(u)}catch{};if(m==='POST'&&p?.origin==='https://api-v2.appdeploy.ai'&&p?.pathname==='/p')return;if(!['GET','HEAD','OPTIONS'].includes(m))writes.push(m+' '+u)});
+          const read=async(url,label,expectedContext)=>{const p=await ctx.newPage();await p.goto(url,{waitUntil:'networkidle',timeout:30000});await p.waitForSelector('[data-testid="adapter-state"]',{timeout:30000});const context=(await p.locator('.context').textContent()||'').trim();assert(context===expectedContext,label+'_CONTEXT');const lite={adapter:await t(p,'adapter-state'),authority:await t(p,'authority-count'),freshness:await t(p,'bridge-freshness'),binding:await t(p,'binding-mode'),boundary:await t(p,'boundary-state'),states:{}};for(const id of core)lite.states[id]=await t(p,'state-'+id);await p.getByRole('button',{name:'Full'}).click();await p.waitForSelector('[data-testid="full-only"]');const states={};for(const id of full)states[id]=await t(p,'state-'+id);const sourceIds=await p.locator('[data-testid^="source-PRJ004-AUTH-"]').evaluateAll(els=>els.map(e=>(e.getAttribute('data-testid')||'').replace('source-','')).sort());const release=(await p.getByTestId('release-binding').textContent()||'').trim();const body=(await p.locator('body').innerText()).toLowerCase();assert(!body.includes('deploy production')&&!body.includes('rollback production')&&!body.includes('change route'),'C2_CONTROL_VISIBLE_'+label);await p.close();return {label,context,lite,full:{states,sourceIds,release}}};
+          const prod=await read(process.env.PAGES_URL+'?g19parity='+Date.now(),'PROD','PRJ-004 · NON-PRODUCTION v3');assert(new URL(prod.label==='PROD'?process.env.PROD_URL:process.env.PROD_URL).origin===new URL(process.env.PROD_URL).origin,'PROD_CONST');const candidate=await read(process.env.CANDIDATE_URL+'?g19parity='+Date.now(),'CANDIDATE','PRJ-004 · PRODUCTION');
+          const semantic=(x)=>JSON.stringify({lite:x.lite,full:x.full});assert(semantic(prod)===semantic(candidate),'RUNTIME_SEMANTIC_DELTA');assert(writes.length===0,'UNAUTHORIZED_APPLICATION_WRITES');
+          const hostile=await ctx.newPage();await hostile.goto(process.env.PAGES_URL+'?next=https://evil.example/#token=bad',{waitUntil:'networkidle',timeout:30000});await hostile.waitForSelector('[data-testid="adapter-state"]',{timeout:30000});assert(new URL(hostile.url()).origin===new URL(process.env.PROD_URL).origin,'HOSTILE_TARGET');assert(!hostile.url().includes('evil.example')&&!hostile.url().includes('token=bad'),'HOSTILE_FORWARD');await hostile.close();
+          await ctx.close();
+          const failRead=async(url,label)=>{const p=await b.newPage();await p.route('**/*',async route=>route.request().url().includes('normalized-runtime')?route.fulfill({status:500,contentType:'application/json',body:'{"error":"g19_parity_fail_closed"}'}):route.continue());await p.goto(url,{waitUntil:'networkidle',timeout:30000});await p.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: BLOCKED',null,{timeout:30000});const s={adapter:await t(p,'adapter-state'),sys01:await t(p,'state-SYS-01'),sec01:await t(p,'state-SEC-01'),boundary:await t(p,'boundary-state')};assert(s.sys01==='UNKNOWN'&&s.sec01==='UNKNOWN'&&s.boundary==='BLOCKED',label+'_FAIL_CLOSED');await p.close();return s};const prodFail=await failRead(process.env.PROD_URL,'PROD');const candidateFail=await failRead(process.env.CANDIDATE_URL,'CANDIDATE');assert(JSON.stringify(prodFail)===JSON.stringify(candidateFail),'FAIL_CLOSED_PARITY');
+          fs.writeFileSync('/tmp/g19-parity/parity.json',JSON.stringify({production:prod,candidate,fail_closed:{production:prodFail,candidate:candidateFail},unauthorized_application_writes:writes.length},null,2)+'\n');await b.close();console.log('G19_LABEL_DELTA_ONLY=PASS');console.log('G19_SAME_STATE_RUNTIME_PARITY=PASS');console.log('G19_FAIL_CLOSED_PARITY=PASS');console.log('G19_HOSTILE_CONTAINMENT=PASS');console.log('G19_ZERO_UNAUTHORIZED_APPLICATION_WRITES=PASS')})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - name: Final production authority preservation lock
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main +refs/heads/${ACCEPTED_REF}:refs/remotes/origin/${ACCEPTED_REF} +refs/heads/${BASELINE_REF}:refs/remotes/origin/${BASELINE_REF}
+          test "$(git rev-parse refs/remotes/origin/main)" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${ACCEPTED_REF})" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${BASELINE_REF})" = "${PROD_SHA}"
+          echo G19_FINAL_PRODUCTION_PRESERVATION=PASS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: prj004-g19-parity-${{ github.run_id }}
+          path: /tmp/g19-parity/
+          if-no-files-found: warn
+          retention-days: 30
