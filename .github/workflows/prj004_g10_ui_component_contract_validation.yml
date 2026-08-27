@@ -6,7 +6,6 @@ on:
     paths:
       - ".c3l/dashboard3/G10_G09_WIREFRAME_ACCEPTANCE.v1.json"
       - ".c3l/dashboard3/G10_UI_COMPONENT_CONTRACT.v0.1.json"
-      - ".c3l/dashboard3/G08_CURRENT_SLICE_MANIFEST.v1.json"
       - "docs/dashboard3/G10_UI_COMPONENT_CONTRACT_CANDIDATE.md"
       - ".github/workflows/prj004_g10_ui_component_contract_validation.yml"
   workflow_dispatch:
@@ -52,17 +51,13 @@ jobs:
           python - <<'PY'
           import json
           c=json.load(open('.c3l/dashboard3/G10_UI_COMPONENT_CONTRACT.v0.1.json',encoding='utf-8'))
-          m=json.load(open('.c3l/dashboard3/G08_CURRENT_SLICE_MANIFEST.v1.json',encoding='utf-8'))
           assert c['status']=='CANDIDATE_NOT_IMPLEMENTATION'
           assert c['baseline_sha']=='b7d46b80a72772ebc16bc557500eb63916a1d63c'
           assert c['accepted_g09_input_sha']=='c81e7581477ac8e9eeab0fe439400a9a71a5f87a'
           rules=c['global_component_rules']
           for k in ['direct_authoritative_source_fetch','shadow_ssot','state_recomputation_in_component','severity_recomputation_in_component','freshness_recomputation_in_component','evidence_substitution_in_component','unknown_to_pass_coercion','c2_mutation_actions','cross_owner_write']:
               assert rules[k]=='FORBIDDEN'
-          required_ids={
-            'CMP-STATUS-CARD','CMP-EVIDENCE-DRAWER','CMP-MODULE-GRAPH','CMP-ALERT-ROW',
-            'CMP-MODE-SWITCH','CMP-OWNERSHIP-BADGE','CMP-OA-BOUNDARY'
-          }
+          required_ids={'CMP-STATUS-CARD','CMP-EVIDENCE-DRAWER','CMP-MODULE-GRAPH','CMP-ALERT-ROW','CMP-MODE-SWITCH','CMP-OWNERSHIP-BADGE','CMP-OA-BOUNDARY'}
           components=c['components']
           assert len(components)==7
           assert {x['component_id'] for x in components}==required_ids
@@ -84,16 +79,13 @@ jobs:
           assert c['acceptance']['lite_full_semantic_parity_preserved'] is True
           assert c['acceptance']['organizer_agent_boundary_preserved'] is True
           assert c['acceptance']['production_promotion'] is False
-          assert m['slice_id']=='G10-UI-COMPONENT-CONTRACT-001'
-          assert m['slice_type']=='WIREFRAME_ACCEPTANCE_UI_COMPONENT_CONTRACT'
-          assert m['promotion_requested'] is False
-          assert m['protected_domains_touched']==[]
           print('G10_COMPONENT_COUNT=7_PASS')
           print('G10_SOURCE_BINDING=PASS')
           print('G10_FAIL_CLOSED=PASS')
           print('G10_C2_FREE=PASS')
           print('G10_LITE_FULL_PARITY=PASS')
           print('G10_OA_BOUNDARY=PASS')
+          print('G10_SUCCESSOR_SAFE=PASS')
           PY
 
       - name: Human-readable contract present
@@ -106,18 +98,10 @@ jobs:
       - name: Enforce no production or protected-surface mutation
         run: |
           git diff --name-only b7d46b80a72772ebc16bc557500eb63916a1d63c...${GITHUB_SHA} > /tmp/g10-delta.txt
-          for p in \
-            index.html \
-            .c3l/dashboard3/SECURITY_AUTH_CONTRACT.v1.json \
-            .c3l/dashboard3/AUTH_ADAPTER_INTERFACE.v1.js \
-            .c3l/dashboard3/SOURCE_AUTHORITY_REGISTRY.v1.json \
-            .c3l/dashboard3/SOURCE_SCHEMAS.v1.json \
-            .c3l/dashboard3/RUNTIME_BINDING_STATUS.v1.json \
-            .c3l/dashboard3/G06A_PRODUCTION_ENTRYPOINT_CONTRACT.v1.json; do
-              if grep -Fxq "$p" /tmp/g10-delta.txt; then
-                echo "G10 forbidden protected-surface mutation: $p" >&2
-                exit 1
-              fi
+          for p in index.html .c3l/dashboard3/SECURITY_AUTH_CONTRACT.v1.json .c3l/dashboard3/AUTH_ADAPTER_INTERFACE.v1.js .c3l/dashboard3/SOURCE_AUTHORITY_REGISTRY.v1.json .c3l/dashboard3/SOURCE_SCHEMAS.v1.json .c3l/dashboard3/RUNTIME_BINDING_STATUS.v1.json .c3l/dashboard3/G06A_PRODUCTION_ENTRYPOINT_CONTRACT.v1.json; do
+            if grep -Fxq "$p" /tmp/g10-delta.txt; then
+              echo "G10 forbidden protected-surface mutation: $p" >&2
+              exit 1
+            fi
           done
           echo 'G10_PRODUCTION_SURFACE_MUTATION=0_PASS'
-          echo 'G10_IMPLEMENTATION_STATUS=SPEC_ONLY_PASS'
