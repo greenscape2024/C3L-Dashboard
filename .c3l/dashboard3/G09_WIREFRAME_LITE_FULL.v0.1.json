@@ -1,0 +1,115 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-09",
+  "artifact": "LITE_FULL_WIREFRAME",
+  "version": "0.1",
+  "status": "LOW_FIDELITY_CANDIDATE",
+  "implementation_status": "NOT_IMPLEMENTED",
+  "shared_metric_contract": {
+    "display_fields": ["metric_id","display_state","severity","last_updated","freshness","source","evidence_reference"],
+    "state_rule": "UNKNOWN, STALE, UNAVAILABLE, or NOT_EVALUATED may never render as verified green.",
+    "parity_rule": "The same metric_id must resolve to the same state, severity, freshness, source and evidence in Lite and Full.",
+    "action_rule": "G09 wireframes show only navigation/evidence affordances. C2 mutation controls are excluded."
+  },
+  "lite_wireframe": {
+    "rows": [
+      {
+        "row": 1,
+        "label": "Global status",
+        "cards": [
+          {"title":"Overall Health","metrics":["SYS-01"]},
+          {"title":"Integrity","metrics":["INT-01"]},
+          {"title":"Security","metrics":["SEC-01","SEC-02"]},
+          {"title":"Critical Alerts","metrics":["ALT-02"]}
+        ]
+      },
+      {
+        "row": 2,
+        "label": "Operational core",
+        "cards": [
+          {"title":"Modules","metrics":["MOD-01","MOD-02"]},
+          {"title":"Routing","metrics":["ROU-01","ROU-02","ROU-04"]},
+          {"title":"Release","metrics":["REP-01","REP-02","REP-03","REP-05"]},
+          {"title":"Drift","metrics":["INT-04"]}
+        ]
+      },
+      {
+        "row": 3,
+        "label": "Evaluation and freshness",
+        "cards": [
+          {"title":"Last Evaluation","metrics":["SYS-03","EVA-01"]},
+          {"title":"Confidence / Freshness","metrics":["SYS-04","EVA-04"]},
+          {"title":"New Alerts","metrics":["ALT-01","ALT-03"]}
+        ]
+      }
+    ],
+    "interaction": {
+      "card_click": "Open corresponding Full section while preserving metric_id context.",
+      "mode_switch": "Switch to Full without refetching or recomputing semantic state.",
+      "evidence": "High/Critical cards expose evidence drilldown entry."
+    }
+  },
+  "full_wireframe": {
+    "shell": ["top_status_ribbon","left_section_navigation","main_detail_canvas","right_evidence_drawer"],
+    "section_order": [
+      "System Overview",
+      "Integrity",
+      "Security",
+      "Modules + Graph",
+      "Routing",
+      "Repository + Release",
+      "Evaluation",
+      "Snapshots",
+      "Alerts + Evidence",
+      "Unified ORGANIZATOR / AGENT",
+      "View Contract"
+    ],
+    "detail_pattern": {
+      "primary_panel": "Metric group with state/severity/freshness.",
+      "secondary_panel": "Source and provenance context.",
+      "evidence_drawer": "Evidence reference and independent read-back details.",
+      "graph_panel": "Read-only module relationship visualization; no graph-owned routing or orchestration."
+    }
+  },
+  "unified_panel_wireframe": {
+    "layout": "TWO_LANES_WITH_HARD_BOUNDARY",
+    "organizer_lane": {
+      "label": "ORGANIZATOR",
+      "owner_badge_required": true,
+      "content": ["system","routing","modules","repository_release"]
+    },
+    "boundary": {
+      "label": "OWNERSHIP BOUNDARY — VIEW ONLY",
+      "metric": "UNI-03",
+      "visual_treatment": "persistent divider and owner badges",
+      "cross_lane_write": "FORBIDDEN"
+    },
+    "agent_lane": {
+      "label": "AGENT",
+      "owner_badge_required": true,
+      "content": ["agent_state","evaluation","execution_state","alerts_evidence"]
+    }
+  },
+  "responsive_behavior": {
+    "desktop": "Lite uses card rows; Full uses persistent section navigation and evidence drawer.",
+    "narrow": "Cards stack; Full navigation becomes section selector; ORGANIZATOR and AGENT lanes stack but boundary banner remains between them.",
+    "semantic_rule": "Responsive transformation may change placement only, never metric meaning or ownership."
+  },
+  "semantic_parity_checks": [
+    "Every metric rendered in Lite exists in Full with identical metric_id.",
+    "Lite severity equals Full severity for the same metric_id.",
+    "Lite freshness equals Full freshness for the same metric_id.",
+    "Lite evidence_reference equals Full evidence_reference for the same metric_id.",
+    "Mode switching does not create a second source of truth.",
+    "Permission-aware visibility may hide detail but may not fabricate PASS or change underlying state."
+  ],
+  "non_goals": [
+    "final visual design",
+    "production component implementation",
+    "new router",
+    "new scheduler",
+    "new state registry",
+    "new authorization model",
+    "C2 execution controls"
+  ]
+}
