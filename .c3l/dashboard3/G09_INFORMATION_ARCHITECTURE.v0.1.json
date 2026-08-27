@@ -1,0 +1,98 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-09",
+  "artifact": "DASHBOARD_3_INFORMATION_ARCHITECTURE",
+  "version": "0.1",
+  "status": "CANDIDATE_NOT_IMPLEMENTATION",
+  "baseline_sha": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+  "slice_id": "G09-IA-WF-001",
+  "architecture_principles": {
+    "dashboard_is_not_ssot": true,
+    "unknown_is_not_pass": true,
+    "lite_full_semantic_parity": true,
+    "organizer_agent_ownership_isolation": true,
+    "unified_panel_is_view_integration_only": true,
+    "c2_mutation_controls_in_wireframe": "FORBIDDEN",
+    "source_provenance_visible_for_high_and_critical": true,
+    "freshness_visible_for_every_metric": true
+  },
+  "global_shell": {
+    "persistent_regions": [
+      "identity_and_runtime_context",
+      "mode_switch_lite_full",
+      "global_health_integrity_security_ribbon",
+      "freshness_timestamp",
+      "active_critical_alert_count"
+    ],
+    "full_only_regions": [
+      "section_navigation",
+      "evidence_drilldown_context"
+    ]
+  },
+  "lite_view": {
+    "purpose": "Fast operational projection of the same normalized metric state used by Full mode.",
+    "sections": [
+      {"id":"L-01","label":"Overall","metrics":["SYS-01","SYS-03","SYS-04"]},
+      {"id":"L-02","label":"Integrity","metrics":["INT-01","INT-04"]},
+      {"id":"L-03","label":"Security","metrics":["SEC-01","SEC-02"]},
+      {"id":"L-04","label":"Critical Alerts","metrics":["ALT-01","ALT-02","ALT-03"]},
+      {"id":"L-05","label":"Modules","metrics":["MOD-01","MOD-02"]},
+      {"id":"L-06","label":"Routing","metrics":["ROU-01","ROU-02","ROU-04"]},
+      {"id":"L-07","label":"Release","metrics":["REP-01","REP-02","REP-03","REP-05"]},
+      {"id":"L-08","label":"Evaluation","metrics":["EVA-01","EVA-04"]}
+    ],
+    "projection_rule": "Lite may omit detail but may not recompute, rename, downgrade severity, alter freshness, or substitute evidence for any metric shown in Full."
+  },
+  "full_view": {
+    "purpose": "Evidence-oriented operational detail over the same normalized state model.",
+    "sections": [
+      {"id":"F-01","label":"System Overview","metrics":["SYS-01","SYS-02","SYS-03","SYS-04"]},
+      {"id":"F-02","label":"Integrity","metrics":["INT-01","INT-02","INT-03","INT-04"]},
+      {"id":"F-03","label":"Security","metrics":["SEC-01","SEC-02","SEC-03","SEC-04"]},
+      {"id":"F-04","label":"Modules + Graph","metrics":["MOD-01","MOD-02","MOD-03","MOD-04","MOD-05"]},
+      {"id":"F-05","label":"Routing","metrics":["ROU-01","ROU-02","ROU-03","ROU-04"]},
+      {"id":"F-06","label":"Repository + Release","metrics":["REP-01","REP-02","REP-03","REP-04","REP-05"]},
+      {"id":"F-07","label":"Evaluation","metrics":["EVA-01","EVA-02","EVA-03","EVA-04"]},
+      {"id":"F-08","label":"Snapshots","metrics":["SNP-01","SNP-02","SNP-03","SNP-04"]},
+      {"id":"F-09","label":"Alerts + Evidence","metrics":["ALT-01","ALT-02","ALT-03","ALT-04"]},
+      {"id":"F-10","label":"Unified ORGANIZATOR / AGENT","metrics":["UNI-01","UNI-02","UNI-03"]},
+      {"id":"F-11","label":"View Contract","metrics":["MODE-01","MODE-02","MODE-03","MODE-04"]}
+    ]
+  },
+  "ownership_boundary": {
+    "organizer_lane": {
+      "owner": "ORGANIZATOR",
+      "domains": ["system","routing","modules","repository_release"],
+      "wireframe_rule": "Every tile in this lane carries an ORGANIZATOR owner badge and references only ORGANIZATOR-authoritative state."
+    },
+    "agent_lane": {
+      "owner": "AGENT",
+      "domains": ["agent_state","evaluation","execution_state","alerts_evidence"],
+      "wireframe_rule": "Every tile in this lane carries an AGENT owner badge and references only AGENT-authoritative state."
+    },
+    "boundary_indicator": {
+      "metric": "UNI-03",
+      "rule": "Cross-lane links may navigate or correlate evidence but may not merge ownership, write authority, route authority, or state identity."
+    }
+  },
+  "metric_universe": [
+    "SYS-01","SYS-02","SYS-03","SYS-04",
+    "INT-01","INT-02","INT-03","INT-04",
+    "SEC-01","SEC-02","SEC-03","SEC-04",
+    "MOD-01","MOD-02","MOD-03","MOD-04","MOD-05",
+    "ROU-01","ROU-02","ROU-03","ROU-04",
+    "REP-01","REP-02","REP-03","REP-04","REP-05",
+    "SNP-01","SNP-02","SNP-03","SNP-04",
+    "ALT-01","ALT-02","ALT-03","ALT-04",
+    "MODE-01","MODE-02","MODE-03","MODE-04",
+    "UNI-01","UNI-02","UNI-03",
+    "EVA-01","EVA-02","EVA-03","EVA-04"
+  ],
+  "acceptance": {
+    "all_45_metrics_mapped_to_full": true,
+    "lite_uses_subset_of_full_metric_ids": true,
+    "ownership_boundary_explicit": true,
+    "final_visual_ui_approval": "NOT_GRANTED_BY_G09",
+    "production_promotion": false
+  }
+}
