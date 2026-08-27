@@ -1,0 +1,155 @@
+name: PRJ-004 G15 Post-Release Production Verification
+
+on:
+  push:
+    branches:
+      - prj-004/g15-post-release-verification
+
+permissions:
+  contents: write
+
+concurrency:
+  group: prj004-g15-post-release-verification
+  cancel-in-progress: false
+
+jobs:
+  production-readback:
+    runs-on: ubuntu-latest
+    env:
+      PROD_SHA: dbc763f91efbc68166416a53a003d4dfde20567b
+      PROD_URL: https://greenscape2024.github.io/C3L-Dashboard/
+      RC_RUNTIME_URL: https://c3l-dashboard-3-0-g12-runtime-adapter-candidate-snhzg1.v2.appdeploy.ai/
+      RC_RUNTIME_VERSION: '1787841095588'
+      SOURCE_URL: https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/
+      SOURCE_VERSION: '1787752423174'
+      G08_BRANCH: prj-004/g08-development-reentry
+      EVIDENCE_PATH: .c3l/dashboard3/G12_APPDEPLOY_RUNTIME_EVIDENCE.v1.json
+      RC_TAG: prj004-dashboard3-rc1-g13-1787841095588
+      FREEZE_SHA: 934da49f076abd2e1f8df6da38b3ceff85fe3b11
+      OLD_BASELINE_SHA: b7d46b80a72772ebc16bc557500eb63916a1d63c
+      OLD_BASELINE_REF: baseline/prj-004-dashboard-3.0-b7d46b80
+      OLD_LAUNCHER_BLOB: 72a271328d0ead519c853a2842d6d565463ca994
+      NEW_LAUNCHER_BLOB: 0439d5bab58a630f387803c77f0181722a2fd9f6
+    steps:
+      - name: Checkout post-release verification branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Production identity and rollback preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --tags --force origin \
+            +refs/heads/main:refs/remotes/origin/main \
+            +refs/heads/${G08_BRANCH}:refs/remotes/origin/${G08_BRANCH} \
+            +refs/heads/${OLD_BASELINE_REF}:refs/remotes/origin/${OLD_BASELINE_REF}
+          test "$(git rev-parse refs/remotes/origin/main)" = "${PROD_SHA}"
+          test "$(git rev-parse "${RC_TAG}^{}")" = "${FREEZE_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${OLD_BASELINE_REF})" = "${OLD_BASELINE_SHA}"
+          test "$(git show refs/remotes/origin/main:index.html | git hash-object --stdin)" = "${NEW_LAUNCHER_BLOB}"
+          test "$(git show refs/remotes/origin/${OLD_BASELINE_REF}:index.html | git hash-object --stdin)" = "${OLD_LAUNCHER_BLOB}"
+          python - <<'PY'
+          import os, subprocess
+          s=subprocess.check_output(['git','show','refs/remotes/origin/main:index.html'],text=True)
+          assert s.count(os.environ['RC_RUNTIME_URL'])==2
+          assert 'URLSearchParams' not in s and 'location.search' not in s and 'location.hash' not in s
+          assert 'window.location.replace(FIXED_PRODUCTION_RUNTIME)' in s
+          print('G15_POST_MAIN_IDENTITY=PASS')
+          print('G15_POST_LAUNCHER_BINDING=PASS')
+          print('G15_POST_ROLLBACK_GIT_ANCHOR=PASS')
+          PY
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Refresh fresh 9-of-9 evidence immediately before production readback
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/g15post
+          git checkout -B "${G08_BRANCH}" "refs/remotes/origin/${G08_BRANCH}"
+          node <<'NODE'
+          const { chromium }=require('playwright'); const fs=require('fs');
+          const authorities=[
+            ['PRJ004-AUTH-BASELINE-INTEGRITY-001','baseline_integrity','ORGANIZATOR_CONTROL_PLANE',300],
+            ['PRJ004-AUTH-DRIFT-001','drift','ORGANIZATOR_CONTROL_PLANE',300],
+            ['PRJ004-AUTH-SECURITY-RBAC-001','security_rbac','SECURITY_CONTROL_PLANE',60],
+            ['PRJ004-AUTH-MODULE-GRAPH-001','module_registry_graph','ORGANIZATOR_CONTROL_PLANE',300],
+            ['PRJ004-AUTH-ROUTING-001','routing','ORGANIZATOR_CONTROL_PLANE',60],
+            ['PRJ004-AUTH-SNAPSHOT-001','snapshots','ORGANIZATOR_CONTROL_PLANE',0],
+            ['PRJ004-AUTH-ALERTS-001','alerts','ALERT_EVENT_CONTROL_PLANE',60],
+            ['PRJ004-AUTH-BOUNDARY-001','organizator_agent_boundary','DUAL_BOUNDARY_CONTROL_ORGANIZATOR_AGENT',300],
+            ['PRJ004-AUTH-EVALUATION-HISTORY-001','evaluation_history','AGENT_EVALUATION_CONTROL_PLANE',300]
+          ];
+          (async()=>{const browser=await chromium.launch({headless:true});const p=await browser.newPage({viewport:{width:1280,height:800}});await p.goto(process.env.SOURCE_URL,{waitUntil:'domcontentloaded',timeout:30000});await p.waitForFunction(()=>document.querySelector('#preflightState')?.textContent==='PASS'&&document.querySelector('#preflightSources')?.textContent==='9 / 9'&&document.querySelector('#preflightSecurity')?.textContent==='Security negatives: PASS',null,{timeout:30000});const selftest=await p.evaluate(()=>{const state=document.querySelector('#preflightState'),count=document.querySelector('#preflightSources'),security=document.querySelector('#preflightSecurity');return{gate_pass:state?.textContent==='PASS',verified_count:Number((count?.textContent||'0 / 9').split('/')[0].trim()),total_sources:Number((count?.textContent||'0 / 9').split('/')[1].trim()),schema_pass:state?.textContent==='PASS',freshness_pass:state?.textContent==='PASS',zero_false_verified:state?.textContent==='PASS',readback_hash:state?.getAttribute('data-readback-hash')||'',anonymous_session_denied:state?.getAttribute('data-session-denied')==='true',c2_denied:state?.getAttribute('data-c2-denied')==='true',security_text:security?.textContent||''}});if(!(selftest.gate_pass&&selftest.verified_count===9&&selftest.total_sources===9&&selftest.schema_pass&&selftest.freshness_pass&&selftest.zero_false_verified&&/^[a-f0-9]{64}$/.test(selftest.readback_hash)&&selftest.anonymous_session_denied&&selftest.c2_denied))throw new Error('SOURCE_NOT_ACCEPTABLE');const collected_at=new Date().toISOString();const source_projection=authorities.map(([authority_id,domain,owner,sla])=>({authority_id,domain,owner,freshness_sla_seconds:sla,verification_state:'VERIFIED_AT_COLLECTION',schema_pass:true,freshness_pass:true,evidence_scope:'AGGREGATE_9_OF_9',evidence_reference:selftest.readback_hash,permission_state:'READ_ONLY_PUBLIC_AGGREGATE'}));const out={project_id:'PRJ-004',gate:'G-PRJ004-12',artifact:'APPDEPLOY_RUNTIME_EVIDENCE_BRIDGE',version:'1.0',status:'COLLECTED_FROM_AUTHORITATIVE_RUNTIME',collected_at,bridge_freshness_limit_seconds:300,source_runtime:{app_id:'c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t',url:process.env.SOURCE_URL,snapshot_version:process.env.SOURCE_VERSION,transport:'OFFICIAL_APPDEPLOY_CLIENT_API_VIA_RENDERED_RUNTIME'},selftest,source_projection,collector:{workflow:'PRJ-004 G15 Post-Release Production Verification',trigger_sha:process.env.GITHUB_SHA,run_id:process.env.GITHUB_RUN_ID,acceptance_refresh:'G15_POST_RELEASE_ATOMIC'},production_promotion:true,production_sha:process.env.PROD_SHA};fs.writeFileSync(process.env.EVIDENCE_PATH,JSON.stringify(out,null,2)+'\n');fs.writeFileSync('/tmp/g15post/fresh-source.json',JSON.stringify({collected_at,readback_hash:selftest.readback_hash},null,2)+'\n');await p.screenshot({path:'/tmp/g15post/source-runtime.png',fullPage:true});console.log('G15_POST_FRESH_9_OF_9=PASS');console.log('G15_POST_FRESH_HASH='+selftest.readback_hash);await browser.close()})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          PARENT_SHA="$(git rev-parse HEAD)"
+          git add "${EVIDENCE_PATH}"
+          test "$(git diff --cached --name-only | wc -l)" -eq 1
+          test "$(git diff --cached --name-only)" = "${EVIDENCE_PATH}"
+          git commit -m "PRJ-004 G15: refresh evidence for post-release production readback"
+          EVIDENCE_SHA="$(git rev-parse HEAD)"
+          test "$(git rev-parse HEAD^)" = "${PARENT_SHA}"
+          test "$(git diff --name-only "${PARENT_SHA}" "${EVIDENCE_SHA}")" = "${EVIDENCE_PATH}"
+          FRESH_HASH="$(python -c "import json;print(json.load(open('${EVIDENCE_PATH}'))['selftest']['readback_hash'])")"
+          echo "EVIDENCE_SHA=${EVIDENCE_SHA}" >> "$GITHUB_ENV"
+          echo "FRESH_HASH=${FRESH_HASH}" >> "$GITHUB_ENV"
+          git push origin "HEAD:${G08_BRANCH}"
+          test "$(git ls-remote origin "refs/heads/${G08_BRANCH}" | awk '{print $1}')" = "${EVIDENCE_SHA}"
+          echo 'G15_POST_EVIDENCE_ONLY_CHILD=PASS'
+
+      - name: Canonical Pages and hostile-input production browser readback
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/prj-004/g15-post-release-verification:refs/remotes/origin/prj-004/g15-post-release-verification
+          git checkout -B prj-004/g15-post-release-verification refs/remotes/origin/prj-004/g15-post-release-verification
+          node <<'NODE'
+          const { chromium }=require('playwright'); const fs=require('fs'); const assert=(c,m)=>{if(!c)throw new Error(m)}; const ids=['SYS-01','INT-01','SEC-01','REP-03','MOD-02','ROU-01','EVA-01'];
+          async function verifyEntry(browser,url,label){const context=await browser.newContext();const writes=[];const direct=[];context.on('request',r=>{const u=r.url(),m=r.method();if(u.includes('c3l-dashboard-prj-004-g04-runtime-candidate'))direct.push(u);let p;try{p=new URL(u)}catch{};if(m==='POST'&&p?.origin==='https://api-v2.appdeploy.ai'&&p?.pathname==='/p')return;if(!['GET','HEAD','OPTIONS'].includes(m))writes.push(m+' '+u)});const page=await context.newPage();await page.goto(url,{waitUntil:'networkidle',timeout:30000});assert(page.url()===process.env.RC_RUNTIME_URL,label+'_TARGET_'+page.url());await page.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: PASS',null,{timeout:30000});const text=async id=>(await page.getByTestId(id).textContent()||'').trim();assert(await text('authority-count')==='9 / 9 authorities',label+'_AUTH');assert(['Evidence: FRESH','Evidence: AGING'].includes(await text('bridge-freshness')),label+'_FRESH');await page.getByTestId('mode-switch').getByRole('button',{name:'Lite'}).click();const lite={};for(const id of ids)lite[id]=await text('state-'+id);await page.getByTestId('card-INT-01').getByRole('button',{name:/Evidence/}).click();const ev=(await page.getByTestId('evidence-drawer').textContent()||'');assert(ev.includes(process.env.FRESH_HASH),label+'_HASH');await page.getByRole('button',{name:'Close evidence'}).click();await page.getByTestId('mode-switch').getByRole('button',{name:'Full'}).click();for(const id of ids)assert(await text('state-'+id)===lite[id],label+'_PARITY_'+id);assert((await page.getByTestId('oa-boundary').textContent()||'').includes('OWNERSHIP BOUNDARY — VIEW ONLY'),label+'_BOUNDARY');assert(direct.length===0,label+'_DIRECT_SOURCE');assert(writes.length===0,label+'_WRITES_'+writes.join(','));await page.screenshot({path:'/tmp/g15post/'+label+'.png',fullPage:true});await context.close();}
+          (async()=>{const browser=await chromium.launch({headless:true});await verifyEntry(browser,process.env.PROD_URL,'canonical');await verifyEntry(browser,process.env.PROD_URL+'?key=SHOULD_NOT_FORWARD&next=https%3A%2F%2Fevil.example%2F%23x#SHOULD_NOT_FORWARD','hostile');const fail=await browser.newPage({viewport:{width:1280,height:800}});await fail.route('**/*',async route=>{if(route.request().url().includes('normalized-runtime'))return route.fulfill({status:500,contentType:'application/json',body:'{"error":"g15_post_fail_closed_probe"}'});return route.continue()});await fail.goto(process.env.RC_RUNTIME_URL,{waitUntil:'networkidle',timeout:30000});await fail.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: BLOCKED',null,{timeout:30000});const ft=async id=>(await fail.getByTestId(id).textContent()||'').trim();assert(await ft('state-SYS-01')==='UNKNOWN','FAIL_SYS');assert(await ft('state-SEC-01')==='UNKNOWN','FAIL_SEC');assert(await ft('boundary-state')==='BLOCKED','FAIL_BOUNDARY');await fail.getByTestId('card-SYS-01').getByRole('button',{name:/Evidence/}).click();assert((await fail.getByTestId('evidence-drawer').textContent()||'').includes('NOT_PROVEN'),'FAIL_EVIDENCE');await fail.screenshot({path:'/tmp/g15post/fail-closed.png',fullPage:true});fs.writeFileSync('/tmp/g15post/browser-result.json',JSON.stringify({status:'PASS',production_sha:process.env.PROD_SHA,evidence_sha:process.env.EVIDENCE_SHA,fresh_hash:process.env.FRESH_HASH,proofs:{canonical_pages_to_rc1:true,hostile_input_contained:true,authority_9_of_9:true,lite_full_parity:true,oa_boundary:true,fail_closed:true,forbidden_application_writes:0,direct_authoritative_source_fetches:0}},null,2)+'\n');console.log('G15_POST_CANONICAL_PRODUCTION=PASS');console.log('G15_POST_HOSTILE_INPUT=PASS');console.log('G15_POST_RUNTIME_9_OF_9=PASS');console.log('G15_POST_FAIL_CLOSED=PASS');await browser.close()})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+
+      - name: Final production and rollback lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/main | awk '{print $1}')" = "${PROD_SHA}"
+          test "$(git ls-remote origin "refs/heads/${G08_BRANCH}" | awk '{print $1}')" = "${EVIDENCE_SHA}"
+          test "$(git rev-parse "${RC_TAG}^{}")" = "${FREEZE_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${OLD_BASELINE_REF})" = "${OLD_BASELINE_SHA}"
+          python - <<'PY'
+          import json, os, datetime
+          b=json.load(open('/tmp/g15post/browser-result.json'))
+          assert b['status']=='PASS' and b['production_sha']==os.environ['PROD_SHA'] and b['evidence_sha']==os.environ['EVIDENCE_SHA']
+          assert all(v is True or v==0 for v in b['proofs'].values())
+          fresh=json.load(open('/tmp/g15post/fresh-source.json'))
+          age=(datetime.datetime.now(datetime.timezone.utc)-datetime.datetime.fromisoformat(fresh['collected_at'].replace('Z','+00:00'))).total_seconds()
+          assert 0<=age<=300
+          out={'project_id':'PRJ-004','gate':'G-PRJ004-15','artifact':'POST_RELEASE_PRODUCTION_VERIFICATION','version':'1.0','status':'PASS','production_sha':os.environ['PROD_SHA'],'production_url':os.environ['PROD_URL'],'launcher_blob':os.environ['NEW_LAUNCHER_BLOB'],'rc_id':'PRJ004-DASHBOARD3-RC1','rc_tag':os.environ['RC_TAG'],'freeze_sha':os.environ['FREEZE_SHA'],'runtime_version':os.environ['RC_RUNTIME_VERSION'],'runtime_url':os.environ['RC_RUNTIME_URL'],'fresh_evidence_sha':os.environ['EVIDENCE_SHA'],'fresh_readback_hash':os.environ['FRESH_HASH'],'pages_deployment_run_id':'33106316487','browser_proofs':b['proofs'],'rollback_reference':{'git_sha':os.environ['OLD_BASELINE_SHA'],'git_ref':os.environ['OLD_BASELINE_REF'],'launcher_blob':os.environ['OLD_LAUNCHER_BLOB'],'appdeploy':'AppDeploy:v11:1787752423174'},'rollback_executed':False,'production_readback':'PASS'}
+          with open('.c3l/dashboard3/G15_POST_RELEASE_PRODUCTION_VERIFICATION.v1.json','w') as f: json.dump(out,f,indent=2);f.write('\n')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .c3l/dashboard3/G15_POST_RELEASE_PRODUCTION_VERIFICATION.v1.json
+          git commit -m "PRJ-004 G15: record post-release production verification"
+          VERIFY_SHA="$(git rev-parse HEAD)"
+          echo "VERIFY_SHA=${VERIFY_SHA}" >> "$GITHUB_ENV"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          test "$(git ls-remote origin "refs/heads/${GITHUB_REF_NAME}" | awk '{print $1}')" = "${VERIFY_SHA}"
+          echo 'G15_POST_PRODUCTION_READBACK=PASS'
+          echo 'G15_POST_ROLLBACK_REFERENCE=PASS'
+          echo "G15_POST_VERIFY_SHA=${VERIFY_SHA}"
+
+      - name: Upload post-release evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: prj004-g15-post-release-${{ github.run_id }}
+          path: /tmp/g15post
+          if-no-files-found: error
+          retention-days: 30
