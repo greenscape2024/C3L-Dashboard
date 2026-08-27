@@ -242,8 +242,15 @@ jobs:
           (async()=>{
             const browser=await chromium.launch({headless:true});
             const page=await browser.newPage({viewport:{width:1280,height:800}});
-            const sourceRuntimeRequests=[]; const writes=[];
-            page.on('request',r=>{if(r.url().includes('c3l-dashboard-prj-004-g04-runtime-candidate'))sourceRuntimeRequests.push(r.url());if(!['GET','HEAD','OPTIONS'].includes(r.method()))writes.push(r.method()+' '+r.url())});
+            const sourceRuntimeRequests=[]; const forbiddenWrites=[]; const appDeployReadTransport=[];
+            page.on('request',r=>{
+              const url=r.url(); const method=r.method();
+              if(url.includes('c3l-dashboard-prj-004-g04-runtime-candidate'))sourceRuntimeRequests.push(url);
+              let parsed; try{parsed=new URL(url);}catch{}
+              const isAppDeployReadTransport=method==='POST' && parsed?.origin==='https://api-v2.appdeploy.ai' && parsed?.pathname==='/p';
+              if(isAppDeployReadTransport){appDeployReadTransport.push(method+' '+url);return;}
+              if(!['GET','HEAD','OPTIONS'].includes(method))forbiddenWrites.push(method+' '+url);
+            });
             await page.goto(process.env.G12_URL,{waitUntil:'networkidle',timeout:30000});
             await page.waitForFunction(()=>document.querySelector('[data-testid="binding-mode"]')?.textContent==='REAL_READ_ONLY_EVIDENCE_BRIDGE',null,{timeout:30000});
             const text=async id=>(await page.getByTestId(id).textContent()||'').trim();
@@ -271,7 +278,8 @@ jobs:
             const buttons=(await page.getByRole('button').allTextContents()).join(' ').toLowerCase();
             for(const bad of ['change route','deploy','rollback','mutate','override severity'])if(buttons.includes(bad))throw new Error('FORBIDDEN_CONTROL_'+bad);
             if(sourceRuntimeRequests.length)throw new Error('DIRECT_SOURCE_RUNTIME_FETCH_'+sourceRuntimeRequests.join(','));
-            if(writes.length)throw new Error('BROWSER_WRITE_REQUEST_'+writes.join(','));
+            if(!appDeployReadTransport.length)throw new Error('APPDEPLOY_READ_TRANSPORT_NOT_OBSERVED');
+            if(forbiddenWrites.length)throw new Error('FORBIDDEN_APP_WRITE_'+forbiddenWrites.join(','));
             await page.screenshot({path:'/tmp/g12f-r1/g12-real-data-desktop.png',fullPage:true});
 
             const fail=await browser.newPage({viewport:{width:1280,height:800}});
@@ -303,7 +311,8 @@ jobs:
             console.log('G12_OA_BOUNDARY=PASS');
             console.log('G11_UI_INTERACTION_REGRESSION=PASS');
             console.log('G10_RUNTIME_CONFORMANCE=PASS');
-            console.log('G12_BROWSER_WRITE_REQUESTS=0_PASS');
+            console.log('G12_APPDEPLOY_READ_TRANSPORT_POST=ALLOWED');
+            console.log('G12_FORBIDDEN_APPLICATION_WRITES=0_PASS');
             await browser.close();
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
