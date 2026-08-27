@@ -1,0 +1,69 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-17",
+  "artifact": "PRODUCTION_PROMOTION_DECISION",
+  "version": "1.0",
+  "status": "PASS_FINAL_LOCK_PROMOTION_HOLD",
+  "production_main_readback": {
+    "expected_sha": "dbc763f91efbc68166416a53a003d4dfde20567b",
+    "actual_sha": "dbc763f91efbc68166416a53a003d4dfde20567b",
+    "result": "PASS",
+    "tree_sha": "e26f2fdc1f0f3ee2c31d2113c984e59b9e09f8f9",
+    "launcher_blob_sha": "0439d5bab58a630f387803c77f0181722a2fd9f6",
+    "launcher_target": "https://c3l-dashboard-3-0-g12-runtime-adapter-candidate-snhzg1.v2.appdeploy.ai/"
+  },
+  "locked_promotion_candidate": {
+    "app_id": "c3l-dashboard-3-0-g16-re-entry-candidate-lsknko",
+    "url": "https://c3l-dashboard-3-0-g16-re-entry-candidate-lsknko.v2.appdeploy.ai/",
+    "version_name": "v2",
+    "snapshot_version": "1787860318709",
+    "baseline_sha": "dbc763f91efbc68166416a53a003d4dfde20567b",
+    "runtime_status": "READY",
+    "source_label": "PRJ-004 · PRODUCTION",
+    "eligible_for_future_promotion": true,
+    "substitution_allowed": false
+  },
+  "decision": {
+    "production_promotion_authorized": false,
+    "production_promotion_performed": false,
+    "state": "HOLD_EXPLICIT_AUTHORIZATION_REQUIRED",
+    "only_permitted_future_target": "c3l-dashboard-3-0-g16-re-entry-candidate-lsknko@1787860318709",
+    "all_other_candidate_versions_blocked": true,
+    "main_mutation_allowed_now": false,
+    "launcher_mutation_allowed_now": false,
+    "runtime_apply_version_allowed_now": false
+  },
+  "authorization_gate": {
+    "required": true,
+    "required_authorization_scope": "PROMOTE_EXACT_G16_CANDIDATE_V2_1787860318709_TO_PRODUCTION",
+    "implicit_authorization_forbidden": true,
+    "promotion_before_authorization": "BLOCKED"
+  },
+  "mandatory_pre_promotion_revalidation": [
+    "MAIN_SHA_EQUALS_DBC763F91EFBC68166416A53A003D4DFDE20567B",
+    "CANDIDATE_V2_1787860318709_EXISTS",
+    "CANDIDATE_RUNTIME_READY",
+    "CANDIDATE_BASELINE_EQUALS_DBC763F91EFBC68166416A53A003D4DFDE20567B",
+    "G16_PHASE_R_EVIDENCE_SUCCESS",
+    "G16_PHASE_P_EVIDENCE_SUCCESS",
+    "AUTHORITY_9_OF_9_PASS",
+    "SECURITY_AND_FAIL_CLOSED_INVARIANTS_PASS",
+    "ZERO_FORBIDDEN_APPLICATION_WRITES"
+  ],
+  "required_post_promotion_acceptance_if_authorized_later": [
+    "WAIT_FOR_PRODUCTION_DEPLOYMENT_SUCCESS",
+    "INDEPENDENT_MAIN_AND_LAUNCHER_READBACK",
+    "NORMAL_AND_HOSTILE_PUBLIC_READBACK",
+    "REP_03_PASS",
+    "SYS_01_PASS",
+    "AUTHORITY_9_OF_9_PASS",
+    "SECURITY_NEGATIVES_PASS",
+    "FAIL_CLOSED_PASS",
+    "ROLLBACK_REFERENCE_RECONFIRMED"
+  ],
+  "evidence_branch_policy": {
+    "branch": "prj-004/g17-g16-remediation-final-lock",
+    "role": "EVIDENCE_ONLY",
+    "production_main_mutated_by_g17": false
+  }
+}
