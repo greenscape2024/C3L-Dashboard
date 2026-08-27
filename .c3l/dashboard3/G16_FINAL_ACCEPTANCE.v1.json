@@ -1,0 +1,77 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-16",
+  "recorded_under_gate": "G-PRJ004-17",
+  "artifact": "G16_FINAL_ACCEPTANCE",
+  "version": "1.0",
+  "status": "PASS_CANDIDATE_VALIDATED_PRODUCTION_UNCHANGED",
+  "authoritative_production_baseline": {
+    "main_sha": "dbc763f91efbc68166416a53a003d4dfde20567b",
+    "tree_sha": "e26f2fdc1f0f3ee2c31d2113c984e59b9e09f8f9",
+    "launcher_blob_sha": "0439d5bab58a630f387803c77f0181722a2fd9f6",
+    "launcher_target": "https://c3l-dashboard-3-0-g12-runtime-adapter-candidate-snhzg1.v2.appdeploy.ai/",
+    "production_promotion_performed_in_g16": false
+  },
+  "development_reentry": {
+    "active_baseline_sha": "dbc763f91efbc68166416a53a003d4dfde20567b",
+    "prior_baseline_sha": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+    "prior_baseline_role": "HISTORICAL_ROLLBACK_REFERENCE_ONLY",
+    "baseline_rebind_status": "PASS"
+  },
+  "validated_candidate": {
+    "app_id": "c3l-dashboard-3-0-g16-re-entry-candidate-lsknko",
+    "url": "https://c3l-dashboard-3-0-g16-re-entry-candidate-lsknko.v2.appdeploy.ai/",
+    "phase_r_version_name": "v1",
+    "phase_r_snapshot_version": "1787859842098",
+    "final_version_name": "v2",
+    "final_snapshot_version": "1787860318709",
+    "deployment_status": "READY",
+    "release_baseline_sha": "dbc763f91efbc68166416a53a003d4dfde20567b",
+    "ui_context_label": "PRJ-004 · PRODUCTION",
+    "stale_non_production_label_removed": true
+  },
+  "accepted_evidence": {
+    "phase_r": {
+      "workflow_run_id": 33110380472,
+      "head_sha": "3439e56b63c5cf5d657594fac059870f7e280b9c",
+      "conclusion": "SUCCESS",
+      "artifact_name": "prj004-g16-phase-r-isolated-33110380472",
+      "artifact_digest": "sha256:1631fc5cb6c1b6acf97ddd62f8a8121227daa7b0b0cc24b2952fd52215dbfbf9"
+    },
+    "phase_p": {
+      "workflow_run_id": 33110686599,
+      "head_sha": "a9416200c6b4a8a4bc2564796bf9cb5634cec0a4",
+      "conclusion": "SUCCESS",
+      "artifact_name": "prj004-g16-phase-p-isolated-33110686599",
+      "artifact_digest": "sha256:7c6eba8e76944978b93ecfe72234bbeeb9f1068f08c9b25d764c89952421def9"
+    }
+  },
+  "acceptance_matrix": {
+    "phase_r_baseline_rebind": "PASS",
+    "phase_p_presentation_only_cleanup": "PASS",
+    "authority_9_of_9": "PASS",
+    "release_gate_rep_03": "PASS_ON_VALIDATED_CANDIDATE",
+    "overall_health_sys_01": "PASS_ON_VALIDATED_CANDIDATE",
+    "security_semantics": "PASS_UNCHANGED",
+    "organizator_agent_boundary": "PASS_UNCHANGED",
+    "lite_full_semantic_parity": "PASS",
+    "fail_closed_behavior": "PASS",
+    "forbidden_application_writes": 0,
+    "authority_semantics_changed": false,
+    "security_semantics_changed": false,
+    "production_launcher_changed": false,
+    "production_candidate_promoted": false
+  },
+  "incident_classification": {
+    "prior_phase_r_workflow_failure": "CI_EVIDENCE_WRITER_RACE_NOT_CANDIDATE_FAILURE",
+    "semantic_retest_result": "PASS"
+  },
+  "invariants": [
+    "UNKNOWN_NE_PASS",
+    "NO_CLIENT_SIDE_SECRET",
+    "NO_QUERY_STRING_CREDENTIAL",
+    "NO_DIRECT_C2_MUTATION",
+    "ORGANIZATOR_AGENT_ISOLATION_PRESERVED",
+    "AUTHORITY_SECURITY_SEMANTICS_UNCHANGED"
+  ]
+}
