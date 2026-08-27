@@ -1,0 +1,66 @@
+name: PRJ-004 G19 Post-Release Observation
+
+on:
+  push:
+    branches:
+      - prj-004/g19-g18-baseline-reentry
+    paths:
+      - .github/workflows/prj004_g19_postrelease_observation.yml
+
+permissions:
+  contents: read
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    env:
+      PROD_SHA: d60ee283b7c87b882b406001ba86205ae5714179
+      ACCEPTED_REF: authority/prj-004-accepted-production
+      BASELINE_REF: baseline/prj-004-dashboard-3.0-g18-d60ee283
+      PAGES_URL: https://greenscape2024.github.io/C3L-Dashboard/
+      V3_URL: https://c3l-dashboard-3-0-g17r-v3-candidate-jpoi50.v2.appdeploy.ai/
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Lock G18 production authority before observation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main +refs/heads/${ACCEPTED_REF}:refs/remotes/origin/${ACCEPTED_REF} +refs/heads/${BASELINE_REF}:refs/remotes/origin/${BASELINE_REF}
+          test "$(git rev-parse refs/remotes/origin/main)" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${ACCEPTED_REF})" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${BASELINE_REF})" = "${PROD_SHA}"
+          git show refs/remotes/origin/main:index.html | grep -F "${V3_URL}"
+          echo G19_PREOBSERVATION_AUTHORITY_LOCK=PASS
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Observe canonical production without evidence refresh
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/g19-observation
+          node <<'NODE'
+          const {chromium}=require('playwright');const fs=require('fs');
+          const t=async(p,id)=>(await p.getByTestId(id).textContent()||'').trim();
+          (async()=>{const b=await chromium.launch({headless:true});const ctx=await b.newContext();const writes=[];ctx.on('request',r=>{const u=r.url(),m=r.method();let p;try{p=new URL(u)}catch{};if(m==='POST'&&p?.origin==='https://api-v2.appdeploy.ai'&&p?.pathname==='/p')return;if(!['GET','HEAD','OPTIONS'].includes(m))writes.push(m+' '+u)});const observe=async(url,label)=>{const p=await ctx.newPage();await p.goto(url,{waitUntil:'networkidle',timeout:30000});await p.waitForSelector('[data-testid="adapter-state"]',{timeout:30000});const s={label,url:p.url(),adapter:await t(p,'adapter-state'),authority:await t(p,'authority-count'),freshness:await t(p,'bridge-freshness'),rep03:await t(p,'state-REP-03'),sys01:await t(p,'state-SYS-01'),sec01:await t(p,'state-SEC-01'),boundary:await t(p,'boundary-state'),binding:await t(p,'binding-mode')};await p.close();return s};const canonical=await observe(process.env.PAGES_URL+'?g19obs='+Date.now(),'CANONICAL');const hostile=await observe(process.env.PAGES_URL+'?next=https://evil.example/#token=bad','HOSTILE');const direct=await observe(process.env.V3_URL+'?g19obs='+Date.now(),'DIRECT');const result={observed_at:new Date().toISOString(),canonical,hostile,direct,unauthorized_application_writes:writes.length};fs.writeFileSync('/tmp/g19-observation/observation.json',JSON.stringify(result,null,2)+'\n');console.log('G19_OBSERVATION='+JSON.stringify(result));const target=[canonical,hostile,direct].every(x=>new URL(x.url).origin===new URL(process.env.V3_URL).origin&&!x.url.includes('evil.example')&&!x.url.includes('token=bad'));const green=[canonical,hostile,direct].every(x=>x.adapter==='Adapter: PASS'&&x.authority==='9 / 9 authorities'&&['Evidence: FRESH','Evidence: AGING'].includes(x.freshness)&&x.rep03==='PASS'&&x.sys01==='PASS'&&x.sec01==='PASS'&&x.boundary==='PASS'&&x.binding==='ACCEPTED_PRODUCTION_POINTER_READ_ONLY');await ctx.close();await b.close();if(!target)throw new Error('G19_HOSTING_OR_HOSTILE_CONTAINMENT_FAIL');if(writes.length!==0)throw new Error('G19_UNAUTHORIZED_APPLICATION_WRITE');if(!green)throw new Error('G19_POST_RELEASE_STATE_NOT_GREEN')})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - name: Final authority lock
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main +refs/heads/${ACCEPTED_REF}:refs/remotes/origin/${ACCEPTED_REF} +refs/heads/${BASELINE_REF}:refs/remotes/origin/${BASELINE_REF}
+          test "$(git rev-parse refs/remotes/origin/main)" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${ACCEPTED_REF})" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${BASELINE_REF})" = "${PROD_SHA}"
+          echo G19_POSTOBSERVATION_AUTHORITY_LOCK=PASS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: prj004-g19-observation-${{ github.run_id }}
+          path: /tmp/g19-observation/
+          if-no-files-found: warn
+          retention-days: 30
