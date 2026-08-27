@@ -1,0 +1,47 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-16",
+  "artifact": "POST_RELEASE_OBSERVATION",
+  "version": "1.0",
+  "status": "HOLD_REENTRY_REBASE_REQUIRED",
+  "observed_production": {
+    "commit_sha": "dbc763f91efbc68166416a53a003d4dfde20567b",
+    "tree_sha": "e26f2fdc1f0f3ee2c31d2113c984e59b9e09f8f9",
+    "launcher_blob_sha": "0439d5bab58a630f387803c77f0181722a2fd9f6",
+    "baseline_pointer": "baseline/prj-004-dashboard-3.0-rc1-dbc763f9",
+    "production_url": "https://greenscape2024.github.io/C3L-Dashboard/",
+    "runtime_app_id": "c3l-dashboard-3-0-g12-runtime-adapter-candidate-snhzg1",
+    "runtime_version": "1787841095588"
+  },
+  "fresh_observation": {
+    "observation_workflow_run_id": "33108977641",
+    "semantic_workflow_run_id": "33109229935",
+    "fresh_evidence_sha": "301291ff4825a9b1d0c5f88612cef8731556768e",
+    "fresh_readback_hash": "a3ee38804c222e28c0015b68fea2ecb67136308a3e871db5b1f6a9ae33baf97d",
+    "authority_9_of_9": "PASS",
+    "adapter_state": "PASS",
+    "security_state": "PASS",
+    "security_drift": false,
+    "authority_drift": false,
+    "release_gate_state": "FAIL",
+    "overall_health_state": "UNKNOWN",
+    "release_baseline_semantic_drift": "DETECTED",
+    "fail_closed": "PASS",
+    "hostile_input_containment": "PASS",
+    "forbidden_application_writes": 0,
+    "direct_authoritative_source_fetches": 0,
+    "ui_label_debt": "PRJ-004 · G12 NON-PRODUCTION"
+  },
+  "root_cause": {
+    "runtime_backend_baseline_binding": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+    "current_authoritative_production_baseline": "dbc763f91efbc68166416a53a003d4dfde20567b",
+    "classification": "RELEASE_BASELINE_BINDING_DRIFT_NOT_AUTHORITY_OR_SECURITY_DRIFT"
+  },
+  "disposition": {
+    "production_mutation_authorized": false,
+    "automatic_rollback": false,
+    "new_development_baseline_required": true,
+    "isolated_semantic_rebind_candidate_required": true,
+    "presentation_only_label_slice_must_follow_semantic_rebind_proof": true
+  }
+}
