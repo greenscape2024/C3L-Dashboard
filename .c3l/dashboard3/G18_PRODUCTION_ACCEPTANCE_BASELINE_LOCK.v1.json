@@ -1,0 +1,99 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-18",
+  "artifact": "PRODUCTION_ACCEPTANCE_BASELINE_LOCK",
+  "version": "1.0",
+  "status": "AUTHORITATIVE_PRODUCTION_BASELINE_LOCKED",
+  "production": {
+    "main_sha": "d60ee283b7c87b882b406001ba86205ae5714179",
+    "main_tree_sha": "f03df3bf0b10e1c69214a755f1fe597749f2d8a4",
+    "launcher_blob_sha": "02e4a4b0964482e17279ec4e67694899cf0cec2d",
+    "pages_url": "https://greenscape2024.github.io/C3L-Dashboard/",
+    "pages_run_id": 33123596973,
+    "pages_result": "SUCCESS",
+    "runtime_app_id": "c3l-dashboard-3-0-g17r-v3-candidate-jpoi50",
+    "runtime_exact_version": "1787867256702",
+    "runtime_status": "READY",
+    "runtime_url": "https://c3l-dashboard-3-0-g17r-v3-candidate-jpoi50.v2.appdeploy.ai/"
+  },
+  "release_authority": {
+    "accepted_production_pointer_ref": "refs/heads/authority/prj-004-accepted-production",
+    "accepted_production_pointer_sha": "d60ee283b7c87b882b406001ba86205ae5714179",
+    "main_equals_accepted_pointer": true,
+    "pointer_advance_wrote_main": false,
+    "release_gate_model": "resolved(main).sha == resolved(accepted_production_pointer).sha",
+    "rep_03": "PASS",
+    "sys_01": "PASS"
+  },
+  "authority_evidence": {
+    "evidence_branch": "prj-004/g08-development-reentry",
+    "evidence_sha": "7b84c6a0a3eee002829c0e0a5a5cf8904baca6a2",
+    "authorities": "9_OF_9",
+    "freshness_at_acceptance": "PASS",
+    "security_negatives": "PASS",
+    "anonymous_session_denied": "PASS",
+    "c2_denied": "PASS"
+  },
+  "acceptance_proofs": {
+    "prepromotion_run_id": 33123443956,
+    "prepromotion_result": "SUCCESS",
+    "postmerge_atomic_run_id": 33123814541,
+    "postmerge_atomic_partial_result": "POINTER_ADVANCE_SUCCESS_FINAL_BROWSER_TIMEOUT",
+    "postpointer_r2_run_id": 33124214234,
+    "postpointer_r2_job_id": 98698309164,
+    "postpointer_r2_result": "SUCCESS",
+    "canonical_pages_exact_v3": "PASS",
+    "hostile_input_containment": "PASS",
+    "direct_runtime_same_semantics": "PASS",
+    "rep_03": "PASS",
+    "sys_01": "PASS",
+    "security": "PASS",
+    "organizator_agent_boundary": "PASS",
+    "fail_closed": "PASS",
+    "unauthorized_application_writes": 0
+  },
+  "test_harness_incidents": [
+    {
+      "run_id": 33123814541,
+      "classification": "POST_POINTER_PROPAGATION_WAIT_TIMEOUT",
+      "production_pointer_advance_completed_before_failure": true,
+      "production_regression_proven": false
+    },
+    {
+      "run_id": 33124033612,
+      "classification": "TEST_SELECTOR_USED_FULL_ONLY_RELEASE_BINDING_WHILE_IN_LITE_MODE",
+      "rep_03_and_sys_01_state_assertions_passed_before_selector_timeout": true,
+      "runtime_code_changed_after_failure": false,
+      "corrected_by_run": 33124214234
+    }
+  ],
+  "proof_artifact": {
+    "artifact_id": 9667686538,
+    "name": "prj004-g18-postpointer-r2-33124214234",
+    "size_bytes": 501,
+    "zip_sha256": "28427effc694edc5d26d762c1be3854a2d99605e33d9d500c162a0ca98168113"
+  },
+  "baseline": {
+    "authoritative_identity": "EXACT_MAIN_SHA",
+    "exact_sha": "d60ee283b7c87b882b406001ba86205ae5714179",
+    "human_readable_pointer": "baseline/prj-004-dashboard-3.0-g18-d60ee283",
+    "human_readable_pointer_is_authority": false,
+    "branch_protection_claimed": false
+  },
+  "rollback": {
+    "automatic": false,
+    "explicit_authorization_required": true,
+    "immediate_previous_production_main_sha": "913a1cfb711ac6fe53a7a681c23682e1e9ea9b0d",
+    "immediate_previous_launcher_blob_sha": "85ba4eeadb9bbb61410a0a9b40928aeaedcb721a",
+    "immediate_previous_runtime_app_id": "c3l-dashboard-3-0-g16-re-entry-candidate-lsknko",
+    "immediate_previous_runtime_exact_version": "1787860318709",
+    "rollback_pointer_action": "AFTER_INDEPENDENT_ROLLBACK_READBACK_ADVANCE_ACCEPTED_PRODUCTION_POINTER_TO_EXACT_ROLLBACK_MAIN_SHA"
+  },
+  "known_non_blocking_warn": {
+    "code": "UI_ENVIRONMENT_LABEL_STILL_SAYS_NON_PRODUCTION_V3",
+    "reason": "G18 authorized exact frozen v3 candidate; changing label would have created a different runtime version",
+    "security_or_authority_impact": false,
+    "recommended_followup": "PRESENTATION_ONLY_SLICE_AFTER_POST_RELEASE_OBSERVATION"
+  },
+  "rule_0": "UNKNOWN_NEVER_EQUALS_PASS"
+}
