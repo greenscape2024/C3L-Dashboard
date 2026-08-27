@@ -1,0 +1,282 @@
+name: PRJ-004 G13 Real-Data UX Acceptance + RC Freeze
+
+on:
+  push:
+    branches: [ "prj-004/g13-real-data-ux-acceptance" ]
+    paths:
+      - ".github/workflows/prj004_g13_real_data_ux_acceptance_rc_freeze.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  G12_ACCEPT_SHA: 4ff35b72ce4a88f6b46a7bd9c19e781f4d4e874c
+  G12_URL: https://c3l-dashboard-3-0-g12-runtime-adapter-candidate-snhzg1.v2.appdeploy.ai/
+  UI_RUNTIME_VERSION: "1787841095588"
+  SOURCE_EVIDENCE_HASH: d7e2f83a1f6ece00205af985d401f09706025a95d8fca56f0aa9913a3501b78c
+  PRODUCTION_BASELINE_SHA: b7d46b80a72772ebc16bc557500eb63916a1d63c
+  BASELINE_REF: baseline/prj-004-dashboard-3.0-b7d46b80
+  ROLLBACK_APPDEPLOY: AppDeploy:v11:1787752423174
+  RC_TAG: prj004-dashboard3-rc1-g13-4ff35b72
+
+jobs:
+  ux-acceptance-freeze:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: prj004-g13-rc-freeze
+      cancel-in-progress: false
+    steps:
+      - name: Checkout G13 control branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Lock accepted G12 source and production rollback anchors
+        run: |
+          test "${GITHUB_REF_NAME}" = "prj-004/g13-real-data-ux-acceptance"
+          git fetch --no-tags origin \
+            +refs/heads/main:refs/remotes/origin/main \
+            +refs/heads/${BASELINE_REF}:refs/remotes/origin/${BASELINE_REF}
+          test "$(git rev-parse refs/remotes/origin/main)" = "${PRODUCTION_BASELINE_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${BASELINE_REF})" = "${PRODUCTION_BASELINE_SHA}"
+          git merge-base --is-ancestor "${G12_ACCEPT_SHA}" "${GITHUB_SHA}"
+          python - <<'PY'
+          import json, os, subprocess
+          def load(path):
+              return json.loads(subprocess.check_output(['git','show',f"{os.environ['G12_ACCEPT_SHA']}:{path}"], text=True))
+          binding=load('.c3l/dashboard3/G12_NONPROD_RUNTIME_BINDING.v1.json')
+          g10=load('.c3l/dashboard3/G10_UI_COMPONENT_CONTRACT.v0.1.json')
+          g11=load('.c3l/dashboard3/G11_UI_RUNTIME_CONFORMANCE.v1.json')
+          g08=load('.c3l/dashboard3/G08_LOCKED_BASELINE_REENTRY_CONTRACT.v1.json')
+          evidence=load('.c3l/dashboard3/G12_APPDEPLOY_RUNTIME_EVIDENCE.v1.json')
+          assert binding['runtime']['version']==os.environ['UI_RUNTIME_VERSION']
+          assert binding['runtime']['url']==os.environ['G12_URL']
+          assert binding['runtime']['production_binding'] is False
+          assert binding['adapter']['backend_write_endpoints']==[]
+          assert binding['isolation']['c2_capability'] is False
+          assert binding['promotion_requested'] is False
+          assert g10['acceptance']['component_count']==7
+          assert g10['acceptance']['lite_full_semantic_parity_preserved'] is True
+          assert g10['acceptance']['organizer_agent_boundary_preserved'] is True
+          assert g11['acceptance']['production_promotion'] is False
+          assert g08['locked_baseline']['production_commit_sha']==os.environ['PRODUCTION_BASELINE_SHA']
+          assert g08['locked_baseline']['baseline_reference_branch']==os.environ['BASELINE_REF']
+          assert f"AppDeploy:{g08['locked_baseline']['runtime_version_name']}:{g08['locked_baseline']['runtime_snapshot_version']}"==os.environ['ROLLBACK_APPDEPLOY']
+          assert evidence['selftest']['readback_hash']==os.environ['SOURCE_EVIDENCE_HASH']
+          assert evidence['selftest']['verified_count']==9 and evidence['selftest']['total_sources']==9
+          assert evidence['production_promotion'] is False
+          print('G13_SOURCE_CANDIDATE_LOCK=PASS')
+          print('G13_RUNTIME_VERSION_LOCK=PASS')
+          print('G13_ROLLBACK_REFERENCE=PASS')
+          print('G13_MAIN_UNCHANGED_PREFLIGHT=PASS')
+          PY
+          test -z "$(git ls-remote --tags origin "refs/tags/${RC_TAG}")"
+
+      - name: Install Playwright UX harness
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Real-data desktop tablet mobile UX and operational acceptance
+        run: |
+          mkdir -p /tmp/g13
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          const fs = require('fs');
+          const assert = (cond,msg)=>{if(!cond)throw new Error(msg)};
+          const commonMetrics=['SYS-01','INT-01','SEC-01','REP-03','MOD-02','ROU-01','EVA-01'];
+          const forbiddenLabels=['change route','deploy','rollback','mutate','override severity','write authority','change alert state','delete alert'];
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const context=await browser.newContext();
+            const sourceRuntimeRequests=[]; const forbiddenWrites=[]; const appDeployReadTransport=[];
+            context.on('request',r=>{
+              const url=r.url(), method=r.method();
+              if(url.includes('c3l-dashboard-prj-004-g04-runtime-candidate'))sourceRuntimeRequests.push(url);
+              let parsed; try{parsed=new URL(url)}catch{}
+              const allowedReadEnvelope=method==='POST' && parsed?.origin==='https://api-v2.appdeploy.ai' && parsed?.pathname==='/p';
+              if(allowedReadEnvelope){appDeployReadTransport.push(method+' '+url);return}
+              if(!['GET','HEAD','OPTIONS'].includes(method))forbiddenWrites.push(method+' '+url);
+            });
+            async function loadPage(viewport){
+              const page=await context.newPage();
+              await page.setViewportSize(viewport);
+              await page.goto(process.env.G12_URL,{waitUntil:'networkidle',timeout:30000});
+              await page.waitForFunction(()=>document.querySelector('[data-testid="binding-mode"]')?.textContent==='REAL_READ_ONLY_EVIDENCE_BRIDGE' && document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: PASS',null,{timeout:30000});
+              return page;
+            }
+            const text=async(page,id)=>(await page.getByTestId(id).textContent()||'').trim();
+            const noHorizontalOverflow=async(page,label)=>{
+              const v=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,bw:document.body.scrollWidth}));
+              assert(v.sw<=v.cw+1 && v.bw<=v.cw+1,label+'_HORIZONTAL_OVERFLOW_'+JSON.stringify(v));
+            };
+            const cardsWithinViewport=async(page,label)=>{
+              const result=await page.evaluate(()=>Array.from(document.querySelectorAll('[data-testid^="card-"]')).map(el=>{const b=el.getBoundingClientRect();return {id:el.getAttribute('data-testid'),x:b.x,w:b.width,right:b.right}}));
+              const width=page.viewportSize().width;
+              for(const b of result)assert(b.x>=-1 && b.w<=width+1 && b.right<=width+1,label+'_CARD_OVERFLOW_'+JSON.stringify(b));
+            };
+
+            const desktop=await loadPage({width:1440,height:1000});
+            assert(await text(desktop,'authority-count')==='9 / 9 authorities','DESKTOP_AUTHORITY_COUNT');
+            assert(['Evidence: FRESH','Evidence: AGING'].includes(await text(desktop,'bridge-freshness')),'DESKTOP_EVIDENCE_NOT_FRESH_OR_AGING');
+            await desktop.getByTestId('mode-switch').getByRole('button',{name:'Lite'}).click();
+            const lite={};
+            for(const id of commonMetrics)lite[id]=await text(desktop,'state-'+id);
+            const beforeInt=lite['INT-01'];
+            await desktop.getByTestId('card-INT-01').getByRole('button',{name:/Evidence/}).click();
+            const liteEvidence=(await desktop.getByTestId('evidence-drawer').textContent()||'').trim();
+            assert(liteEvidence.includes('READ_ONLY_PUBLIC_AGGREGATE'),'LITE_EVIDENCE_PERMISSION_MISSING');
+            assert(liteEvidence.includes(process.env.SOURCE_EVIDENCE_HASH),'LITE_EVIDENCE_HASH_MISSING');
+            const desktopDrawer=await desktop.getByTestId('evidence-drawer').boundingBox();
+            assert(desktopDrawer && desktopDrawer.width<=1440 && desktopDrawer.x>=0 && desktopDrawer.x+desktopDrawer.width<=1440.5,'DESKTOP_DRAWER_OVERFLOW');
+            await desktop.getByRole('button',{name:'Close evidence'}).click();
+            await desktop.getByTestId('mode-switch').getByRole('button',{name:'Full'}).click();
+            for(const id of commonMetrics)assert(await text(desktop,'state-'+id)===lite[id],'LITE_FULL_STATE_DRIFT_'+id);
+            assert(await text(desktop,'state-INT-01')===beforeInt,'INT_STATE_DRIFT');
+            await desktop.getByTestId('card-INT-01').getByRole('button',{name:/Evidence/}).click();
+            const fullEvidence=(await desktop.getByTestId('evidence-drawer').textContent()||'').trim();
+            assert(fullEvidence===liteEvidence,'LITE_FULL_EVIDENCE_DRIFT');
+            await desktop.getByRole('button',{name:'Close evidence'}).click();
+            assert((await desktop.getByTestId('module-detail-redacted').textContent()||'').includes('READ-ONLY DETAIL HIDDEN'),'MODULE_PERMISSION_STATE_FAIL');
+            assert((await desktop.getByTestId('alert-detail-redacted').textContent()||'').includes('ALERT DETAIL HIDDEN'),'ALERT_PERMISSION_STATE_FAIL');
+            assert((await desktop.getByTestId('oa-boundary').textContent()||'').includes('OWNERSHIP BOUNDARY — VIEW ONLY'),'OA_BOUNDARY_FAIL');
+            assert(await desktop.locator('[data-testid^="source-PRJ004-AUTH-"]').count()===9,'SOURCE_MAP_NOT_9');
+            const buttons=(await desktop.getByRole('button').allTextContents()).join(' ').toLowerCase();
+            for(const bad of forbiddenLabels)assert(!buttons.includes(bad),'FORBIDDEN_CONTROL_VISIBLE_'+bad);
+            await noHorizontalOverflow(desktop,'DESKTOP');
+            await cardsWithinViewport(desktop,'DESKTOP');
+            await desktop.screenshot({path:'/tmp/g13/g13-desktop-full.png',fullPage:true});
+
+            const tablet=await loadPage({width:768,height:1024});
+            await tablet.getByTestId('mode-switch').getByRole('button',{name:'Full'}).click();
+            assert((await tablet.getByTestId('oa-boundary').textContent()||'').includes('OWNERSHIP BOUNDARY — VIEW ONLY'),'TABLET_OA_BOUNDARY_FAIL');
+            await noHorizontalOverflow(tablet,'TABLET');
+            await cardsWithinViewport(tablet,'TABLET');
+            await tablet.getByTestId('card-INT-01').getByRole('button',{name:/Evidence/}).click();
+            const tabletDrawer=await tablet.getByTestId('evidence-drawer').boundingBox();
+            assert(tabletDrawer && tabletDrawer.width<=768 && tabletDrawer.x>=0 && tabletDrawer.x+tabletDrawer.width<=768.5,'TABLET_DRAWER_OVERFLOW');
+            await tablet.screenshot({path:'/tmp/g13/g13-tablet-full.png',fullPage:true});
+            await tablet.getByRole('button',{name:'Close evidence'}).click();
+
+            const mobile=await loadPage({width:375,height:667});
+            await mobile.getByTestId('mode-switch').getByRole('button',{name:'Lite'}).click();
+            const mobileLiteInt=await text(mobile,'state-INT-01');
+            await mobile.getByTestId('mode-switch').getByRole('button',{name:'Full'}).click();
+            assert(await text(mobile,'state-INT-01')===mobileLiteInt,'MOBILE_LITE_FULL_STATE_DRIFT');
+            assert((await mobile.getByTestId('oa-boundary').textContent()||'').includes('OWNERSHIP BOUNDARY — VIEW ONLY'),'MOBILE_OA_BOUNDARY_FAIL');
+            await noHorizontalOverflow(mobile,'MOBILE');
+            await cardsWithinViewport(mobile,'MOBILE');
+            await mobile.getByTestId('card-INT-01').getByRole('button',{name:/Evidence/}).click();
+            const mobileDrawer=await mobile.getByTestId('evidence-drawer').boundingBox();
+            assert(mobileDrawer && mobileDrawer.width<=375 && mobileDrawer.x>=0 && mobileDrawer.x+mobileDrawer.width<=375.5,'MOBILE_DRAWER_OVERFLOW');
+            assert((await mobile.getByTestId('evidence-drawer').textContent()||'').includes('READ_ONLY_PUBLIC_AGGREGATE'),'MOBILE_PERMISSION_EVIDENCE_FAIL');
+            await mobile.screenshot({path:'/tmp/g13/g13-mobile-full.png',fullPage:true});
+
+            const fail=await browser.newPage({viewport:{width:1280,height:800}});
+            await fail.route('**/*',async route=>{const u=route.request().url();if(u.includes('normalized-runtime'))return route.fulfill({status:500,contentType:'application/json',body:'{"error":"g13_simulated_adapter_failure"}'});return route.continue()});
+            await fail.goto(process.env.G12_URL,{waitUntil:'networkidle',timeout:30000});
+            await fail.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: BLOCKED',null,{timeout:30000});
+            assert(await text(fail,'state-SYS-01')==='UNKNOWN','FAIL_CLOSED_SYS_NOT_UNKNOWN');
+            assert(await text(fail,'state-SEC-01')==='UNKNOWN','FAIL_CLOSED_SEC_NOT_UNKNOWN');
+            assert(await text(fail,'boundary-state')==='BLOCKED','FAIL_CLOSED_BOUNDARY_NOT_BLOCKED');
+            assert(!((await fail.getByTestId('state-SYS-01').getAttribute('class')||'').includes('pass')),'FAIL_CLOSED_GREEN');
+            await fail.getByTestId('card-SYS-01').getByRole('button',{name:/Evidence/}).click();
+            assert((await fail.getByTestId('evidence-drawer').textContent()||'').includes('NOT_PROVEN'),'FAIL_CLOSED_EVIDENCE_SYNTHESIS');
+            await fail.screenshot({path:'/tmp/g13/g13-fail-closed.png',fullPage:true});
+
+            assert(sourceRuntimeRequests.length===0,'DIRECT_AUTHORITATIVE_SOURCE_FETCH_'+sourceRuntimeRequests.join(','));
+            assert(appDeployReadTransport.length>0,'APPDEPLOY_READ_TRANSPORT_NOT_OBSERVED');
+            assert(forbiddenWrites.length===0,'FORBIDDEN_APPLICATION_WRITE_'+forbiddenWrites.join(','));
+            const result={
+              gate:'G-PRJ004-13',status:'PASS',tested_runtime_version:process.env.UI_RUNTIME_VERSION,git_candidate_sha:process.env.G12_ACCEPT_SHA,
+              proofs:{real_data_9_of_9:true,lite_full_semantic_parity:true,evidence_drawer:true,module_permission_state:true,alert_permission_state:true,organizer_agent_boundary:true,desktop_no_overflow:true,tablet_no_overflow:true,mobile_no_overflow:true,fail_closed:true,direct_authoritative_source_fetches:0,forbidden_application_writes:0},
+              production_promotion:false
+            };
+            fs.writeFileSync('/tmp/g13/browser-result.json',JSON.stringify(result,null,2)+'\n');
+            console.log('G13_REAL_DATA_UX_ACCEPTANCE=PASS');
+            console.log('G13_LITE_FULL_PARITY=PASS');
+            console.log('G13_EVIDENCE_DRAWER=PASS');
+            console.log('G13_MODULE_ALERT_PERMISSION_STATES=PASS');
+            console.log('G13_OA_BOUNDARY=PASS');
+            console.log('G13_DESKTOP_TABLET_MOBILE_VISUAL_GUARDS=PASS');
+            console.log('G13_FAIL_CLOSED=PASS');
+            console.log('G13_FORBIDDEN_APPLICATION_WRITES=0_PASS');
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+
+      - name: Freeze release candidate metadata only after UX PASS
+        run: |
+          python - <<'PY'
+          import json, os, datetime
+          browser=json.load(open('/tmp/g13/browser-result.json',encoding='utf-8'))
+          now=datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00','Z')
+          ux={
+            'project_id':'PRJ-004','gate':'G-PRJ004-13','artifact':'REAL_DATA_UX_ACCEPTANCE','version':'1.0','status':'PASS',
+            'accepted_g12_candidate_sha':os.environ['G12_ACCEPT_SHA'],'ui_runtime_version':os.environ['UI_RUNTIME_VERSION'],'runtime_url':os.environ['G12_URL'],
+            'source_evidence_hash':os.environ['SOURCE_EVIDENCE_HASH'],'tested_at':now,'workflow_run_id':os.environ['GITHUB_RUN_ID'],'proofs':browser['proofs'],
+            'production_main_sha':os.environ['PRODUCTION_BASELINE_SHA'],'production_promotion':False
+          }
+          freeze={
+            'project_id':'PRJ-004','gate':'G-PRJ004-13','artifact':'RELEASE_CANDIDATE_FREEZE','version':'1.0','status':'RELEASE_CANDIDATE_FROZEN_NONPRODUCTION',
+            'rc_id':'PRJ004-DASHBOARD3-RC1','rc_tag':os.environ['RC_TAG'],'source_candidate_sha':os.environ['G12_ACCEPT_SHA'],
+            'ui_runtime':{'provider':'APPDEPLOY','url':os.environ['G12_URL'],'version':os.environ['UI_RUNTIME_VERSION'],'production_binding':False},
+            'source_evidence_hash':os.environ['SOURCE_EVIDENCE_HASH'],
+            'rollback_reference':{'git_sha':os.environ['PRODUCTION_BASELINE_SHA'],'git_ref':os.environ['BASELINE_REF'],'appdeploy':os.environ['ROLLBACK_APPDEPLOY']},
+            'acceptance':{'g13_real_data_ux':'PASS','lite_full':'PASS','evidence_drawer':'PASS','module_alert_permissions':'PASS','organizer_agent_boundary':'PASS','visual_non_degradation':'PASS','fail_closed':'PASS'},
+            'freeze_time':now,'workflow_run_id':os.environ['GITHUB_RUN_ID'],'promotion_requested':False,'production_promotion':False,'main_modified':False
+          }
+          os.makedirs('.c3l/dashboard3',exist_ok=True)
+          json.dump(ux,open('.c3l/dashboard3/G13_REAL_DATA_UX_ACCEPTANCE.v1.json','w',encoding='utf-8'),indent=2); open('.c3l/dashboard3/G13_REAL_DATA_UX_ACCEPTANCE.v1.json','a').write('\n')
+          json.dump(freeze,open('.c3l/dashboard3/G13_RELEASE_CANDIDATE_FREEZE.v1.json','w',encoding='utf-8'),indent=2); open('.c3l/dashboard3/G13_RELEASE_CANDIDATE_FREEZE.v1.json','a').write('\n')
+          json.dump(freeze,open('/tmp/g13/rc-freeze.json','w',encoding='utf-8'),indent=2); open('/tmp/g13/rc-freeze.json','a').write('\n')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .c3l/dashboard3/G13_REAL_DATA_UX_ACCEPTANCE.v1.json .c3l/dashboard3/G13_RELEASE_CANDIDATE_FREEZE.v1.json
+          test "$(git diff --cached --name-only | wc -l)" -eq 2
+          git commit -m "PRJ-004 G13: freeze real-data UX accepted RC1"
+          FREEZE_SHA="$(git rev-parse HEAD)"
+          echo "FREEZE_SHA=${FREEZE_SHA}" >> "$GITHUB_ENV"
+          echo "${FREEZE_SHA}" > /tmp/g13/freeze-sha.txt
+          git tag -a "${RC_TAG}" "${FREEZE_SHA}" -m "PRJ-004 G13 RC1 | source ${G12_ACCEPT_SHA} | runtime ${UI_RUNTIME_VERSION} | rollback ${PRODUCTION_BASELINE_SHA} / ${ROLLBACK_APPDEPLOY} | promotion=false"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git push origin "refs/tags/${RC_TAG}"
+          echo "G13_RC_FREEZE_COMMIT=${FREEZE_SHA}"
+          echo "G13_RC_TAG=${RC_TAG}"
+
+      - name: Independent post-freeze readback and production non-promotion proof
+        run: |
+          REMOTE_BRANCH_SHA="$(git ls-remote origin "refs/heads/${GITHUB_REF_NAME}" | awk '{print $1}')"
+          MAIN_SHA="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "${REMOTE_BRANCH_SHA}" = "${FREEZE_SHA}"
+          test "${MAIN_SHA}" = "${PRODUCTION_BASELINE_SHA}"
+          test "$(git rev-parse "${RC_TAG}^{}")" = "${FREEZE_SHA}"
+          python - <<'PY'
+          import json, os
+          ux=json.load(open('.c3l/dashboard3/G13_REAL_DATA_UX_ACCEPTANCE.v1.json',encoding='utf-8'))
+          f=json.load(open('.c3l/dashboard3/G13_RELEASE_CANDIDATE_FREEZE.v1.json',encoding='utf-8'))
+          assert ux['status']=='PASS' and ux['accepted_g12_candidate_sha']==os.environ['G12_ACCEPT_SHA']
+          assert ux['ui_runtime_version']==os.environ['UI_RUNTIME_VERSION'] and ux['production_promotion'] is False
+          assert f['status']=='RELEASE_CANDIDATE_FROZEN_NONPRODUCTION'
+          assert f['source_candidate_sha']==os.environ['G12_ACCEPT_SHA']
+          assert f['ui_runtime']['version']==os.environ['UI_RUNTIME_VERSION'] and f['ui_runtime']['production_binding'] is False
+          assert f['rollback_reference']['git_sha']==os.environ['PRODUCTION_BASELINE_SHA']
+          assert f['rollback_reference']['git_ref']==os.environ['BASELINE_REF']
+          assert f['rollback_reference']['appdeploy']==os.environ['ROLLBACK_APPDEPLOY']
+          assert f['promotion_requested'] is False and f['production_promotion'] is False and f['main_modified'] is False
+          print('G13_RC_METADATA_READBACK=PASS')
+          print('G13_MAIN_UNCHANGED=PASS')
+          print('G13_PRODUCTION_PROMOTION=FALSE')
+          print('G13_RELEASE_CANDIDATE_FREEZE=PASS')
+          PY
+          printf 'source_candidate_sha=%s\nui_runtime_version=%s\nfreeze_sha=%s\nrc_tag=%s\nrollback_git=%s\nrollback_appdeploy=%s\nmain_sha=%s\npromotion=false\n' "${G12_ACCEPT_SHA}" "${UI_RUNTIME_VERSION}" "${FREEZE_SHA}" "${RC_TAG}" "${PRODUCTION_BASELINE_SHA}" "${ROLLBACK_APPDEPLOY}" "${MAIN_SHA}" > /tmp/g13/final-summary.txt
+
+      - name: Upload G13 acceptance evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: prj004-g13-ux-rc-freeze-${{ github.run_id }}
+          path: /tmp/g13
+          if-no-files-found: error
+          retention-days: 30
