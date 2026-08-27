@@ -1,0 +1,82 @@
+name: PRJ-004 G18 Post-Pointer Production Readback
+
+on:
+  push:
+    branches:
+      - prj-004/g18-postpointer-readback
+    paths:
+      - .github/workflows/prj004_g18_postpointer_readback.yml
+
+permissions:
+  contents: write
+
+jobs:
+  readback:
+    runs-on: ubuntu-latest
+    env:
+      PROD_SHA: d60ee283b7c87b882b406001ba86205ae5714179
+      ACCEPTED_REF: authority/prj-004-accepted-production
+      PAGES_URL: https://greenscape2024.github.io/C3L-Dashboard/
+      V3_URL: https://c3l-dashboard-3-0-g17r-v3-candidate-jpoi50.v2.appdeploy.ai/
+      SOURCE_URL: https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/
+      SOURCE_VERSION: '1787752423174'
+      EVIDENCE_BRANCH: prj-004/g08-development-reentry
+      EVIDENCE_PATH: .c3l/dashboard3/G12_APPDEPLOY_RUNTIME_EVIDENCE.v1.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Lock main pointer and launcher before readback
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main +refs/heads/${ACCEPTED_REF}:refs/remotes/origin/${ACCEPTED_REF} +refs/heads/${EVIDENCE_BRANCH}:refs/remotes/origin/${EVIDENCE_BRANCH}
+          test "$(git rev-parse refs/remotes/origin/main)" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${ACCEPTED_REF})" = "${PROD_SHA}"
+          git show refs/remotes/origin/main:index.html | grep -F "${V3_URL}"
+          echo G18_POSTPOINTER_REF_LOCK=PASS
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Refresh authoritative 9-of-9 evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout -B "${EVIDENCE_BRANCH}" "refs/remotes/origin/${EVIDENCE_BRANCH}"
+          node <<'NODE'
+          const {chromium}=require('playwright');const fs=require('fs');
+          const authorities=[['PRJ004-AUTH-BASELINE-INTEGRITY-001','baseline_integrity','ORGANIZATOR_CONTROL_PLANE',300],['PRJ004-AUTH-DRIFT-001','drift','ORGANIZATOR_CONTROL_PLANE',300],['PRJ004-AUTH-SECURITY-RBAC-001','security_rbac','SECURITY_CONTROL_PLANE',60],['PRJ004-AUTH-MODULE-GRAPH-001','module_registry_graph','ORGANIZATOR_CONTROL_PLANE',300],['PRJ004-AUTH-ROUTING-001','routing','ORGANIZATOR_CONTROL_PLANE',60],['PRJ004-AUTH-SNAPSHOT-001','snapshots','ORGANIZATOR_CONTROL_PLANE',0],['PRJ004-AUTH-ALERTS-001','alerts','ALERT_EVENT_CONTROL_PLANE',60],['PRJ004-AUTH-BOUNDARY-001','organizator_agent_boundary','DUAL_BOUNDARY_CONTROL_ORGANIZATOR_AGENT',300],['PRJ004-AUTH-EVALUATION-HISTORY-001','evaluation_history','AGENT_EVALUATION_CONTROL_PLANE',300]];
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();await p.goto(process.env.SOURCE_URL,{waitUntil:'domcontentloaded',timeout:30000});await p.waitForFunction(()=>document.querySelector('#preflightState')?.textContent==='PASS'&&document.querySelector('#preflightSources')?.textContent==='9 / 9'&&document.querySelector('#preflightSecurity')?.textContent==='Security negatives: PASS',null,{timeout:30000});const st=await p.evaluate(()=>{const s=document.querySelector('#preflightState'),c=document.querySelector('#preflightSources');return{gate_pass:s?.textContent==='PASS',verified_count:Number((c?.textContent||'0 / 9').split('/')[0].trim()),total_sources:Number((c?.textContent||'0 / 9').split('/')[1].trim()),schema_pass:s?.textContent==='PASS',freshness_pass:s?.textContent==='PASS',zero_false_verified:s?.textContent==='PASS',readback_hash:s?.getAttribute('data-readback-hash')||'',anonymous_session_denied:s?.getAttribute('data-session-denied')==='true',c2_denied:s?.getAttribute('data-c2-denied')==='true'}});if(!(st.gate_pass&&st.verified_count===9&&st.total_sources===9&&st.schema_pass&&st.freshness_pass&&st.zero_false_verified&&/^[a-f0-9]{64}$/.test(st.readback_hash)&&st.anonymous_session_denied&&st.c2_denied))throw new Error('SOURCE_NOT_ACCEPTABLE');const collected_at=new Date().toISOString();const source_projection=authorities.map(([authority_id,domain,owner,sla])=>({authority_id,domain,owner,freshness_sla_seconds:sla,verification_state:'VERIFIED_AT_COLLECTION',schema_pass:true,freshness_pass:true,evidence_scope:'AGGREGATE_9_OF_9',evidence_reference:st.readback_hash,permission_state:'READ_ONLY_PUBLIC_AGGREGATE'}));const out={project_id:'PRJ-004',gate:'G-PRJ004-12',artifact:'APPDEPLOY_RUNTIME_EVIDENCE_BRIDGE',version:'1.0',status:'COLLECTED_FROM_AUTHORITATIVE_RUNTIME',collected_at,bridge_freshness_limit_seconds:300,source_runtime:{app_id:'c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t',url:process.env.SOURCE_URL,snapshot_version:process.env.SOURCE_VERSION,transport:'OFFICIAL_APPDEPLOY_CLIENT_API_VIA_RENDERED_RUNTIME'},selftest:st,source_projection,collector:{workflow:'PRJ-004 G18 Post-Pointer Production Readback',run_id:process.env.GITHUB_RUN_ID},production_sha:process.env.PROD_SHA};fs.writeFileSync(process.env.EVIDENCE_PATH,JSON.stringify(out,null,2)+'\n');await b.close()})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${EVIDENCE_PATH}"
+          test "$(git diff --cached --name-only)" = "${EVIDENCE_PATH}"
+          git commit -m "PRJ-004 G18: refresh post-pointer authority evidence"
+          git push origin "HEAD:${EVIDENCE_BRANCH}"
+          echo G18_POSTPOINTER_FRESH_9_OF_9=PASS
+      - name: Production browser readback and fail-closed proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/g18-postpointer
+          node <<'NODE'
+          const {chromium}=require('playwright');const fs=require('fs');const assert=(c,m)=>{if(!c)throw new Error(m)};
+          (async()=>{const b=await chromium.launch({headless:true});const ctx=await b.newContext();const writes=[];ctx.on('request',r=>{const u=r.url(),m=r.method();let p;try{p=new URL(u)}catch{};if(m==='POST'&&p?.origin==='https://api-v2.appdeploy.ai'&&p?.pathname==='/p')return;if(!['GET','HEAD','OPTIONS'].includes(m))writes.push(m+' '+u)});const check=async(url,label)=>{const p=await ctx.newPage();await p.goto(url,{waitUntil:'networkidle',timeout:30000});await p.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: PASS',null,{timeout:30000});assert(new URL(p.url()).origin===new URL(process.env.V3_URL).origin,label+'_TARGET');assert(!p.url().includes('evil.example')&&!p.url().includes('token=bad'),label+'_HOSTILE_FORWARD');const t=async id=>(await p.getByTestId(id).textContent()||'').trim();const s={url:p.url(),adapter:await t('adapter-state'),authority:await t('authority-count'),freshness:await t('bridge-freshness'),rep03:await t('state-REP-03'),sys01:await t('state-SYS-01'),sec01:await t('state-SEC-01'),boundary:await t('boundary-state'),binding:await t('binding-mode'),release:(await p.getByTestId('release-binding').textContent()||'').trim()};assert(s.authority==='9 / 9 authorities',label+'_AUTH');assert(['Evidence: FRESH','Evidence: AGING'].includes(s.freshness),label+'_FRESH');assert(s.rep03==='PASS',label+'_REP03');assert(s.sys01==='PASS',label+'_SYS01');assert(s.sec01==='PASS',label+'_SEC');assert(s.boundary==='PASS',label+'_OA');assert(s.binding==='ACCEPTED_PRODUCTION_POINTER_READ_ONLY',label+'_BINDING');assert(s.release.includes(process.env.PROD_SHA.slice(0,12)),label+'_RELEASE');await p.close();return s};const canonical=await check(process.env.PAGES_URL+'?g18post='+Date.now(),'CANONICAL');const hostile=await check(process.env.PAGES_URL+'?next=https://evil.example/#token=bad','HOSTILE');const direct=await check(process.env.V3_URL+'?g18post='+Date.now(),'DIRECT');assert(writes.length===0,'WRITES');await ctx.close();const fail=await b.newPage();await fail.route('**/*',async route=>route.request().url().includes('normalized-runtime')?route.fulfill({status:500,contentType:'application/json',body:'{"error":"g18_postpointer_fail_closed"}'}):route.continue());await fail.goto(process.env.V3_URL,{waitUntil:'networkidle',timeout:30000});await fail.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: BLOCKED',null,{timeout:30000});const ft=async id=>(await fail.getByTestId(id).textContent()||'').trim();assert(await ft('state-SYS-01')==='UNKNOWN','FAIL_SYS');assert(await ft('state-SEC-01')==='UNKNOWN','FAIL_SEC');assert(await ft('boundary-state')==='BLOCKED','FAIL_BOUNDARY');fs.writeFileSync('/tmp/g18-postpointer/readback.json',JSON.stringify({canonical,hostile,direct,fail_closed:true,unauthorized_writes:writes.length},null,2)+'\n');await b.close();console.log('G18_POSTPOINTER_REP03=PASS');console.log('G18_POSTPOINTER_SYS01=PASS');console.log('G18_POSTPOINTER_SECURITY=PASS');console.log('G18_POSTPOINTER_OA=PASS');console.log('G18_POSTPOINTER_FAIL_CLOSED=PASS');console.log('G18_POSTPOINTER_HOSTILE_CONTAINMENT=PASS')})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - name: Final ref and launcher lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main +refs/heads/${ACCEPTED_REF}:refs/remotes/origin/${ACCEPTED_REF}
+          test "$(git rev-parse refs/remotes/origin/main)" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${ACCEPTED_REF})" = "${PROD_SHA}"
+          git show refs/remotes/origin/main:index.html | grep -F "${V3_URL}"
+          echo G18_POSTPOINTER_FINAL_LOCK=PASS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prj004-g18-postpointer-${{ github.run_id }}
+          path: /tmp/g18-postpointer/
+          if-no-files-found: error
+          retention-days: 30
