@@ -4,7 +4,7 @@
   "artifact": "APPDEPLOY_RUNTIME_EVIDENCE_BRIDGE",
   "version": "1.0",
   "status": "COLLECTED_FROM_AUTHORITATIVE_RUNTIME",
-  "collected_at": "2026-08-27T22:46:58.629Z",
+  "collected_at": "2026-08-27T22:50:48.168Z",
   "bridge_freshness_limit_seconds": 300,
   "source_runtime": {
     "app_id": "c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t",
@@ -19,7 +19,7 @@
     "schema_pass": true,
     "freshness_pass": true,
     "zero_false_verified": true,
-    "readback_hash": "011f726d05157e98603fe5a6de2fbb6adf662357527d629ffaf0111884dacfb6",
+    "readback_hash": "bea1e371785b883506f3f77b7f02559d3f7fd288e23e5fc864bec96b14ef9739",
     "anonymous_session_denied": true,
     "c2_denied": true
   },
@@ -33,7 +33,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "011f726d05157e98603fe5a6de2fbb6adf662357527d629ffaf0111884dacfb6",
+      "evidence_reference": "bea1e371785b883506f3f77b7f02559d3f7fd288e23e5fc864bec96b14ef9739",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -45,7 +45,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "011f726d05157e98603fe5a6de2fbb6adf662357527d629ffaf0111884dacfb6",
+      "evidence_reference": "bea1e371785b883506f3f77b7f02559d3f7fd288e23e5fc864bec96b14ef9739",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -57,7 +57,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "011f726d05157e98603fe5a6de2fbb6adf662357527d629ffaf0111884dacfb6",
+      "evidence_reference": "bea1e371785b883506f3f77b7f02559d3f7fd288e23e5fc864bec96b14ef9739",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -69,7 +69,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "011f726d05157e98603fe5a6de2fbb6adf662357527d629ffaf0111884dacfb6",
+      "evidence_reference": "bea1e371785b883506f3f77b7f02559d3f7fd288e23e5fc864bec96b14ef9739",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -81,7 +81,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "011f726d05157e98603fe5a6de2fbb6adf662357527d629ffaf0111884dacfb6",
+      "evidence_reference": "bea1e371785b883506f3f77b7f02559d3f7fd288e23e5fc864bec96b14ef9739",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -93,7 +93,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "011f726d05157e98603fe5a6de2fbb6adf662357527d629ffaf0111884dacfb6",
+      "evidence_reference": "bea1e371785b883506f3f77b7f02559d3f7fd288e23e5fc864bec96b14ef9739",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -105,7 +105,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "011f726d05157e98603fe5a6de2fbb6adf662357527d629ffaf0111884dacfb6",
+      "evidence_reference": "bea1e371785b883506f3f77b7f02559d3f7fd288e23e5fc864bec96b14ef9739",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -117,7 +117,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "011f726d05157e98603fe5a6de2fbb6adf662357527d629ffaf0111884dacfb6",
+      "evidence_reference": "bea1e371785b883506f3f77b7f02559d3f7fd288e23e5fc864bec96b14ef9739",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -129,13 +129,13 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "011f726d05157e98603fe5a6de2fbb6adf662357527d629ffaf0111884dacfb6",
+      "evidence_reference": "bea1e371785b883506f3f77b7f02559d3f7fd288e23e5fc864bec96b14ef9739",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     }
   ],
   "collector": {
-    "workflow": "PRJ-004 G18 Post-Release Atomic Acceptance",
-    "run_id": "33123814541"
+    "workflow": "PRJ-004 G18 Post-Pointer Production Readback",
+    "run_id": "33124033612"
   },
   "production_sha": "d60ee283b7c87b882b406001ba86205ae5714179"
 }
