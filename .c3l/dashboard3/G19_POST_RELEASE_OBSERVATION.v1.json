@@ -1,0 +1,48 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-19",
+  "artifact": "POST_RELEASE_OBSERVATION",
+  "version": "1.0",
+  "status": "BLOCKER_FOUND_FAIL_CLOSED",
+  "observation_run_id": 33125235263,
+  "observation_job_id": 98701672741,
+  "observed_at": "2026-08-27T23:09:50.818Z",
+  "production_identity": {
+    "main_sha": "d60ee283b7c87b882b406001ba86205ae5714179",
+    "accepted_pointer_sha": "d60ee283b7c87b882b406001ba86205ae5714179",
+    "baseline_pointer_sha": "d60ee283b7c87b882b406001ba86205ae5714179",
+    "identity_drift": false,
+    "hosting_target_drift": false,
+    "unauthorized_application_writes": 0
+  },
+  "runtime_observation": {
+    "canonical": {
+      "adapter": "BLOCKED",
+      "authority": "0_OF_9",
+      "evidence_freshness": "STALE",
+      "rep_03": "STALE",
+      "sys_01": "STALE",
+      "sec_01": "STALE",
+      "oa_boundary": "BLOCKED"
+    },
+    "hostile_entrypoint": "SAME_FAIL_CLOSED_SEMANTICS",
+    "direct_runtime": "SAME_FAIL_CLOSED_SEMANTICS"
+  },
+  "classification": {
+    "production_code_regression_proven": false,
+    "release_pointer_regression_proven": false,
+    "security_bypass_proven": false,
+    "freshness_operational_gap_proven": true,
+    "root_cause": "G12 authority evidence bridge exceeds its 300 second freshness limit and no persistent refresh path was found in the repository search performed during G19.",
+    "fail_closed_behavior_correct": true
+  },
+  "containment": {
+    "one_time_refresh_used_to_mask_observation": false,
+    "new_scheduler_created": false,
+    "production_runtime_mutated": false,
+    "main_mutated": false,
+    "accepted_pointer_mutated": false
+  },
+  "gate_effect": "G19_CANNOT_CLOSE_PASS_UNTIL_PERSISTENT_FRESHNESS_PATH_IS_PROVEN_OR_FRESHNESS_CONTRACT_IS_EXPLICITLY_REVISED",
+  "rule_0": "UNKNOWN_OR_STALE_NEVER_EQUALS_PASS"
+}
