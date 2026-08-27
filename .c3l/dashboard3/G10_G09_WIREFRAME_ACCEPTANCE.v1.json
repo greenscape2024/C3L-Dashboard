@@ -27,6 +27,12 @@
     "c2_controls_in_wireframe": "FORBIDDEN",
     "dashboard_is_not_ssot": true
   },
+  "validation_policy": {
+    "accepted_g09_artifacts_are_immutable_inputs": true,
+    "g09_validator_is_successor_slice_safe": true,
+    "current_slice_manifest_may_advance_without_invalidating_g09_acceptance": true,
+    "accepted_input_blob_change_requires_new_acceptance": true
+  },
   "acceptance_limits": {
     "final_visual_design_approved": false,
     "production_component_implementation_approved": false,
