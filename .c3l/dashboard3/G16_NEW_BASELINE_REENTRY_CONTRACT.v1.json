@@ -1,0 +1,91 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-16",
+  "artifact": "NEW_BASELINE_DEVELOPMENT_REENTRY_CONTRACT",
+  "version": "1.0",
+  "status": "ACTIVE_REENTRY_CONTRACT",
+  "supersedes_for_future_development": ".c3l/dashboard3/G08_LOCKED_BASELINE_REENTRY_CONTRACT.v1.json",
+  "historical_contract_mutation": false,
+  "locked_baseline": {
+    "authority": "EXACT_COMMIT_SHA",
+    "production_commit_sha": "dbc763f91efbc68166416a53a003d4dfde20567b",
+    "production_tree_sha": "e26f2fdc1f0f3ee2c31d2113c984e59b9e09f8f9",
+    "baseline_reference_branch": "baseline/prj-004-dashboard-3.0-rc1-dbc763f9",
+    "launcher_blob_sha": "0439d5bab58a630f387803c77f0181722a2fd9f6",
+    "production_url": "https://greenscape2024.github.io/C3L-Dashboard/",
+    "runtime_app_id": "c3l-dashboard-3-0-g12-runtime-adapter-candidate-snhzg1",
+    "runtime_url": "https://c3l-dashboard-3-0-g12-runtime-adapter-candidate-snhzg1.v2.appdeploy.ai/",
+    "runtime_version_name": "v2",
+    "runtime_version": "1787841095588"
+  },
+  "reentry_rules": {
+    "slice_must_descend_from_locked_baseline": true,
+    "delta_base_must_equal_locked_baseline_sha": true,
+    "baseline_reference_must_resolve_exactly": true,
+    "main_must_not_move_during_unpromoted_slice": true,
+    "direct_production_mutation": "FORBIDDEN",
+    "unknown_or_stale_evidence": "FAIL_CLOSED",
+    "promotion_without_complete_same_candidate_proof": "FORBIDDEN",
+    "old_b7d46_baseline_role": "ROLLBACK_ONLY_NOT_ACTIVE_DEVELOPMENT_BASELINE"
+  },
+  "protected_invariants": {
+    "source_authority_semantics": "NO_DEGRADATION",
+    "authorization_and_permission_semantics": "NO_DEGRADATION",
+    "organizer_agent_boundary": "NO_DEGRADATION",
+    "launcher_query_hash_containment": "NO_DEGRADATION",
+    "fail_closed_unknown_stale_blocked": "NO_DEGRADATION",
+    "zero_false_verified": "NO_DEGRADATION",
+    "release_baseline_binding": "MUST_MATCH_LOCKED_BASELINE",
+    "rollback_anchor": "MUST_REMAIN_RESOLVABLE"
+  },
+  "mandatory_candidate_proof": {
+    "baseline_ancestry": "PASS",
+    "baseline_reference_exact_match": "PASS",
+    "baseline_to_candidate_delta": "EXPLICIT_AND_MACHINE_READABLE",
+    "protected_domain_delta_classification": "REQUIRED",
+    "source_authority_non_degradation": "REQUIRED_PASS",
+    "permission_non_degradation": "REQUIRED_PASS",
+    "release_baseline_binding": "REQUIRED_PASS",
+    "release_gate": "REQUIRED_PASS",
+    "overall_health_when_fresh": "REQUIRED_PASS",
+    "hostile_input_containment": "REQUIRED_PASS",
+    "runtime_9_of_9": "REQUIRED_PASS",
+    "fail_closed": "REQUIRED_PASS",
+    "organizer_agent_boundary": "REQUIRED_PASS",
+    "zero_forbidden_writes": "REQUIRED_PASS",
+    "rollback_anchor_resolvable": "REQUIRED_PASS"
+  },
+  "first_slice_sequence": {
+    "phase_r": {
+      "slice_id": "G16-RELEASE-BASELINE-REBIND-001",
+      "classification": "ISOLATED_NONPRODUCTION_RELEASE_BASELINE_REBIND",
+      "allowed_delta": [
+        "runtime BASELINE b7d46b80... -> dbc763f9...",
+        "frontend fail-closed release_baseline_sha b7d46b80... -> dbc763f9..."
+      ],
+      "source_authority_semantics_change": false,
+      "permission_semantics_change": false,
+      "production_mutation": false,
+      "must_pass_before_phase_p": true
+    },
+    "phase_p": {
+      "slice_id": "G16-PRESENTATION-LABEL-001",
+      "classification": "PRESENTATION_ONLY",
+      "allowed_delta": [
+        "PRJ-004 · G12 NON-PRODUCTION -> PRJ-004 · PRODUCTION"
+      ],
+      "source_authority_semantics_change": false,
+      "permission_semantics_change": false,
+      "release_semantics_change": false,
+      "production_mutation": false,
+      "promotion_requested": false
+    }
+  },
+  "promotion_contract": {
+    "candidate_status_default": "NOT_PROMOTION_ELIGIBLE",
+    "explicit_production_authorization_required": true,
+    "automatic_merge": false,
+    "automatic_rollback": false,
+    "post_merge_production_readback_required": true
+  }
+}
