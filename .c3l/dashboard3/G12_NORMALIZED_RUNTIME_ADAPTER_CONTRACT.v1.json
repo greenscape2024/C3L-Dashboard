@@ -1,0 +1,83 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-12",
+  "artifact": "NORMALIZED_RUNTIME_ADAPTER_CONTRACT",
+  "version": "1.0",
+  "status": "CANDIDATE_READ_ONLY",
+  "locked_baseline_sha": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+  "g10_component_contract": ".c3l/dashboard3/G10_UI_COMPONENT_CONTRACT.v0.1.json",
+  "g11_runtime_binding": ".c3l/dashboard3/G11_NONPROD_RUNTIME_BINDING.v1.json",
+  "source_authority_registry": ".c3l/dashboard3/SOURCE_AUTHORITY_REGISTRY.v1.json",
+  "source_runtime_evidence": ".c3l/dashboard3/G12_APPDEPLOY_RUNTIME_EVIDENCE.v1.json",
+  "architecture": {
+    "pattern": "AUTHORITATIVE_APPDEPLOY_RUNTIME_TO_EVIDENCE_BRIDGE_TO_NORMALIZED_ADAPTER_TO_COMPONENTS",
+    "component_direct_source_fetch": "FORBIDDEN",
+    "frontend_api_call_owner": "src/normalizedAdapter.ts",
+    "frontend_api_endpoint": "GET /api/normalized-runtime",
+    "backend_write_endpoints": 0,
+    "c2_capability": false,
+    "shadow_ssot": false,
+    "production_runtime_mutation": false,
+    "production_launcher_mutation": false
+  },
+  "evidence_bridge": {
+    "source_runtime_app_id": "c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t",
+    "source_runtime_version": "1787752423174",
+    "collector_transport": "OFFICIAL_APPDEPLOY_CLIENT_API_VIA_RENDERED_RUNTIME",
+    "required_verified_authorities": 9,
+    "aggregate_hash_required": "64_HEX",
+    "source_fresh_window_seconds": 60,
+    "bridge_aging_window_seconds": 300,
+    "freshness_states": {
+      "0_60_seconds": "FRESH",
+      "61_300_seconds": "AGING",
+      "over_300_seconds": "STALE_FAIL_CLOSED"
+    }
+  },
+  "semantic_rules": {
+    "authority_verified_at_collection_is_not_metric_value": true,
+    "unknown_to_pass_coercion": "FORBIDDEN",
+    "aggregate_evidence_may_support": [
+      "overall runtime gate",
+      "baseline/integrity authority presence and validation",
+      "security authority presence and validation",
+      "drift authority presence and validation",
+      "ORGANIZATOR/AGENT boundary authority presence and validation"
+    ],
+    "aggregate_evidence_may_not_invent": [
+      "module health detail",
+      "route health detail",
+      "evaluation score detail",
+      "unresolved critical alert count",
+      "snapshot content integrity detail",
+      "canonical alert rows",
+      "module graph topology detail"
+    ],
+    "protected_detail_policy": "HIDE_DETAIL_ONLY; PRESERVE_UNDERLYING_UNKNOWN_OR_BLOCKED_STATE",
+    "release_gate_source": "DIRECT_READ_ONLY_GITHUB_MAIN_VS_LOCKED_BASELINE"
+  },
+  "required_authorities": [
+    "PRJ004-AUTH-BASELINE-INTEGRITY-001",
+    "PRJ004-AUTH-DRIFT-001",
+    "PRJ004-AUTH-SECURITY-RBAC-001",
+    "PRJ004-AUTH-MODULE-GRAPH-001",
+    "PRJ004-AUTH-ROUTING-001",
+    "PRJ004-AUTH-SNAPSHOT-001",
+    "PRJ004-AUTH-ALERTS-001",
+    "PRJ004-AUTH-BOUNDARY-001",
+    "PRJ004-AUTH-EVALUATION-HISTORY-001"
+  ],
+  "acceptance": {
+    "fixture_to_real_semantic_parity": "REQUIRED_PASS",
+    "freshness_evidence_propagation": "REQUIRED_PASS",
+    "permission_aware_visibility": "REQUIRED_PASS",
+    "authority_mapping_9_of_9": "REQUIRED_PASS",
+    "fail_closed": "REQUIRED_PASS",
+    "organizer_agent_isolation": "REQUIRED_PASS",
+    "g10_contract_conformance": "REQUIRED_PASS",
+    "g11_regression": "REQUIRED_PASS",
+    "g08_locked_baseline_guard": "REQUIRED_PASS",
+    "same_candidate_sha": true,
+    "production_promotion": false
+  }
+}

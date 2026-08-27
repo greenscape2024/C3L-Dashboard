@@ -1,0 +1,39 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-11",
+  "artifact": "NONPRODUCTION_UI_RUNTIME_BINDING",
+  "version": "1.0",
+  "status": "CANDIDATE_READY_NOT_PRODUCTION",
+  "locked_baseline_sha": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+  "g10_contract_path": ".c3l/dashboard3/G10_UI_COMPONENT_CONTRACT.v0.1.json",
+  "runtime": {
+    "provider": "APPDEPLOY",
+    "app_id": "c3l-dashboard-3-0-g11-ui-candidate-kkx0oi",
+    "url": "https://c3l-dashboard-3-0-g11-ui-candidate-kkx0oi.v2.appdeploy.ai/",
+    "version_name": "v1",
+    "version": "1787837233071",
+    "architecture": "FRONTEND_ONLY_REACT_VITE",
+    "production_binding": false
+  },
+  "isolation": {
+    "production_app_modified": false,
+    "github_pages_launcher_modified": false,
+    "main_modified": false,
+    "backend_present": false,
+    "direct_authority_fetch": false,
+    "appdeploy_sdk_or_api_usage": false,
+    "c2_capability": false,
+    "auth_model_change": false
+  },
+  "implemented_components": [
+    "CMP-STATUS-CARD",
+    "CMP-EVIDENCE-DRAWER",
+    "CMP-MODULE-GRAPH",
+    "CMP-ALERT-ROW",
+    "CMP-MODE-SWITCH",
+    "CMP-OWNERSHIP-BADGE",
+    "CMP-OA-BOUNDARY"
+  ],
+  "view_model_binding": "NORMALIZED_READ_ONLY_FIXTURE_ONLY",
+  "promotion_requested": false
+}

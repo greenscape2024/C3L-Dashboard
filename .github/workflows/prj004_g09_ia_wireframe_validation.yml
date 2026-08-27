@@ -1,0 +1,83 @@
+name: PRJ-004 G09 IA + Wireframe Validation
+
+on:
+  push:
+    branches:
+      - "prj-004/g08-development-reentry"
+      - "prj-004/dev/**"
+    paths:
+      - ".c3l/dashboard3/G09_INFORMATION_ARCHITECTURE.v0.1.json"
+      - ".c3l/dashboard3/G09_WIREFRAME_LITE_FULL.v0.1.json"
+      - "docs/dashboard3/G09_IA_WIREFRAME_CANDIDATE.md"
+      - ".github/workflows/prj004_g09_ia_wireframe_validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-g09:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate immutable G09 IA and wireframe artifacts
+        run: |
+          python - <<'PY'
+          import json
+          ia=json.load(open('.c3l/dashboard3/G09_INFORMATION_ARCHITECTURE.v0.1.json',encoding='utf-8'))
+          wf=json.load(open('.c3l/dashboard3/G09_WIREFRAME_LITE_FULL.v0.1.json',encoding='utf-8'))
+          universe=ia['metric_universe']
+          assert ia['status']=='CANDIDATE_NOT_IMPLEMENTATION'
+          assert ia['baseline_sha']=='b7d46b80a72772ebc16bc557500eb63916a1d63c'
+          assert len(universe)==45 and len(set(universe))==45
+          full=[]
+          for s in ia['full_view']['sections']:
+              full.extend(s['metrics'])
+          assert set(full)==set(universe)
+          lite=[]
+          for s in ia['lite_view']['sections']:
+              lite.extend(s['metrics'])
+          assert set(lite).issubset(set(full))
+          assert ia['architecture_principles']['lite_full_semantic_parity'] is True
+          assert ia['architecture_principles']['organizer_agent_ownership_isolation'] is True
+          assert ia['architecture_principles']['unified_panel_is_view_integration_only'] is True
+          assert ia['architecture_principles']['c2_mutation_controls_in_wireframe']=='FORBIDDEN'
+          assert ia['ownership_boundary']['organizer_lane']['owner']=='ORGANIZATOR'
+          assert ia['ownership_boundary']['agent_lane']['owner']=='AGENT'
+          assert ia['ownership_boundary']['boundary_indicator']['metric']=='UNI-03'
+          assert ia['acceptance']['all_45_metrics_mapped_to_full'] is True
+          assert ia['acceptance']['lite_uses_subset_of_full_metric_ids'] is True
+          assert ia['acceptance']['final_visual_ui_approval']=='NOT_GRANTED_BY_G09'
+          assert ia['acceptance']['production_promotion'] is False
+          assert wf['status']=='LOW_FIDELITY_CANDIDATE'
+          assert wf['implementation_status']=='NOT_IMPLEMENTED'
+          assert wf['unified_panel_wireframe']['layout']=='TWO_LANES_WITH_HARD_BOUNDARY'
+          assert wf['unified_panel_wireframe']['boundary']['cross_lane_write']=='FORBIDDEN'
+          assert 'C2 execution controls' in wf['non_goals']
+          assert len(wf['semantic_parity_checks'])>=6
+          print('G09_FULL_METRIC_COVERAGE=45_OF_45_PASS')
+          print('G09_LITE_FULL_SEMANTIC_PARITY=PASS')
+          print('G09_ORGANIZATOR_AGENT_BOUNDARY=PASS')
+          print('G09_C2_CONTROLS=ABSENT_PASS')
+          print('G09_IMPLEMENTATION_STATUS=SPEC_ONLY_PASS')
+          print('G09_SUCCESSOR_SAFE_VALIDATION=PASS')
+          PY
+
+      - name: Human-readable wireframe candidate present
+        run: |
+          test -s docs/dashboard3/G09_IA_WIREFRAME_CANDIDATE.md
+          grep -Fq 'OWNERSHIP BOUNDARY — VIEW ONLY' docs/dashboard3/G09_IA_WIREFRAME_CANDIDATE.md
+          grep -Fq 'UNKNOWN' docs/dashboard3/G09_IA_WIREFRAME_CANDIDATE.md
+          grep -Fq 'b7d46b80a72772ebc16bc557500eb63916a1d63c' docs/dashboard3/G09_IA_WIREFRAME_CANDIDATE.md
+          echo 'G09_HUMAN_WIREFRAME=PASS'
+
+      - name: Enforce protected baseline surfaces remain untouched by G09 artifacts
+        run: |
+          test "$(git rev-parse b7d46b80a72772ebc16bc557500eb63916a1d63c:index.html)" = "72a271328d0ead519c853a2842d6d565463ca994"
+          test "$(git rev-parse HEAD:.c3l/dashboard3/G09_INFORMATION_ARCHITECTURE.v0.1.json)" = "866a5abe9818daae9177df43940944b98f9a4184"
+          test "$(git rev-parse HEAD:.c3l/dashboard3/G09_WIREFRAME_LITE_FULL.v0.1.json)" = "fc203bf6487ca3c1d364abfed7a88396a8881e59"
+          echo 'G09_ACCEPTED_ARTIFACT_BLOBS=PASS'

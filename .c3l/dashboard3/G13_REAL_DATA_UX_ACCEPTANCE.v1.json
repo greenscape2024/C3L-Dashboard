@@ -1,0 +1,30 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-13",
+  "artifact": "REAL_DATA_UX_ACCEPTANCE",
+  "version": "1.0",
+  "status": "PASS",
+  "accepted_g12_predecessor_sha": "4ff35b72ce4a88f6b46a7bd9c19e781f4d4e874c",
+  "fresh_evidence_acceptance_sha": "b22c2a6d46e0a94bb9bda910c8baa623c5574f3f",
+  "ui_runtime_version": "1787841095588",
+  "runtime_url": "https://c3l-dashboard-3-0-g12-runtime-adapter-candidate-snhzg1.v2.appdeploy.ai/",
+  "source_evidence_hash": "c9d2545dafbaa54511604e92d79158e1d31539f7f9f3188c68e7adbc8af00a6b",
+  "tested_at": "2026-08-27T16:22:05.451054Z",
+  "workflow_run_id": "33092759780",
+  "proofs": {
+    "real_data_9_of_9": true,
+    "lite_full_semantic_parity": true,
+    "evidence_drawer": true,
+    "module_permission_state": true,
+    "alert_permission_state": true,
+    "organizer_agent_boundary": true,
+    "desktop_no_overflow": true,
+    "tablet_no_overflow": true,
+    "mobile_no_overflow": true,
+    "fail_closed": true,
+    "direct_authoritative_source_fetches": 0,
+    "forbidden_application_writes": 0
+  },
+  "production_main_sha": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+  "production_promotion": false
+}

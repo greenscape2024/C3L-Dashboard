@@ -1,0 +1,43 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-10",
+  "artifact": "G09_WIREFRAME_ACCEPTANCE",
+  "version": "1.0",
+  "status": "ACCEPTED_AS_COMPONENT_CONTRACT_INPUT",
+  "locked_baseline_sha": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+  "accepted_g09_candidate_sha": "c81e7581477ac8e9eeab0fe439400a9a71a5f87a",
+  "accepted_inputs": {
+    "information_architecture": {
+      "path": ".c3l/dashboard3/G09_INFORMATION_ARCHITECTURE.v0.1.json",
+      "blob_sha": "866a5abe9818daae9177df43940944b98f9a4184",
+      "acceptance": "ACCEPTED"
+    },
+    "lite_full_wireframe": {
+      "path": ".c3l/dashboard3/G09_WIREFRAME_LITE_FULL.v0.1.json",
+      "blob_sha": "fc203bf6487ca3c1d364abfed7a88396a8881e59",
+      "acceptance": "ACCEPTED"
+    }
+  },
+  "accepted_invariants": {
+    "full_metric_coverage": "45_OF_45",
+    "lite_full_semantic_parity": true,
+    "organizer_agent_hard_boundary": true,
+    "unified_panel_is_view_integration_only": true,
+    "unknown_is_not_pass": true,
+    "c2_controls_in_wireframe": "FORBIDDEN",
+    "dashboard_is_not_ssot": true
+  },
+  "validation_policy": {
+    "accepted_g09_artifacts_are_immutable_inputs": true,
+    "g09_validator_is_successor_slice_safe": true,
+    "current_slice_manifest_may_advance_without_invalidating_g09_acceptance": true,
+    "accepted_input_blob_change_requires_new_acceptance": true
+  },
+  "acceptance_limits": {
+    "final_visual_design_approved": false,
+    "production_component_implementation_approved": false,
+    "production_deploy_approved": false,
+    "promotion_requested": false
+  },
+  "supersession_rule": "Any change to an accepted G09 input blob requires a new explicit wireframe acceptance before downstream UI implementation."
+}

@@ -1,0 +1,56 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-12",
+  "artifact": "NONPRODUCTION_NORMALIZED_RUNTIME_BINDING",
+  "version": "1.0",
+  "status": "CANDIDATE_READY_NOT_PRODUCTION",
+  "locked_baseline_sha": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+  "runtime": {
+    "provider": "APPDEPLOY",
+    "app_id": "c3l-dashboard-3-0-g12-runtime-adapter-candidate-snhzg1",
+    "url": "https://c3l-dashboard-3-0-g12-runtime-adapter-candidate-snhzg1.v2.appdeploy.ai/",
+    "version_name": "v2",
+    "version": "1787841095588",
+    "architecture": "FRONTEND_PLUS_READ_ONLY_BACKEND_REACT_VITE",
+    "production_binding": false
+  },
+  "adapter": {
+    "frontend_module": "src/normalizedAdapter.ts",
+    "frontend_endpoint": "GET /api/normalized-runtime",
+    "backend_module": "backend/index.ts",
+    "backend_endpoints": [
+      "GET /api/_healthcheck",
+      "GET /api/normalized-runtime"
+    ],
+    "backend_write_endpoints": [],
+    "direct_component_authority_fetch": false,
+    "source_runtime_direct_browser_fetch": false
+  },
+  "source_binding": {
+    "authoritative_appdeploy_app_id": "c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t",
+    "authoritative_appdeploy_version": "1787752423174",
+    "evidence_bridge_path": ".c3l/dashboard3/G12_APPDEPLOY_RUNTIME_EVIDENCE.v1.json",
+    "evidence_transport": "COLLECTED_BY_BROWSER_FROM_AUTHORITATIVE_RUNTIME_USING_OFFICIAL_APPDEPLOY_API_TRANSPORT",
+    "expected_authorities": 9
+  },
+  "isolation": {
+    "production_app_modified": false,
+    "github_pages_launcher_modified": false,
+    "main_modified": false,
+    "auth_model_change": false,
+    "authority_registry_change": false,
+    "c2_capability": false,
+    "cross_owner_write": false,
+    "dormant_realtime_write_scaffold_present": false
+  },
+  "implemented_components": [
+    "CMP-STATUS-CARD",
+    "CMP-EVIDENCE-DRAWER",
+    "CMP-MODULE-GRAPH",
+    "CMP-ALERT-ROW",
+    "CMP-MODE-SWITCH",
+    "CMP-OWNERSHIP-BADGE",
+    "CMP-OA-BOUNDARY"
+  ],
+  "promotion_requested": false
+}
