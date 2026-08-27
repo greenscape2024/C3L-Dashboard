@@ -1,0 +1,211 @@
+name: PRJ-004 G14 Frozen-RC Final Promotion Readiness
+
+on:
+  push:
+    branches: [ "prj-004/g14-frozen-rc-promotion-readiness" ]
+    paths:
+      - ".github/workflows/prj004_g14_frozen_rc_promotion_readiness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  RC_TAG: prj004-dashboard3-rc1-g13-1787841095588
+  FREEZE_SHA: 934da49f076abd2e1f8df6da38b3ceff85fe3b11
+  SOURCE_SHA: b22c2a6d46e0a94bb9bda910c8baa623c5574f3f
+  G08_BRANCH: prj-004/g08-development-reentry
+  EVIDENCE_PATH: .c3l/dashboard3/G12_APPDEPLOY_RUNTIME_EVIDENCE.v1.json
+  G12_URL: https://c3l-dashboard-3-0-g12-runtime-adapter-candidate-snhzg1.v2.appdeploy.ai/
+  UI_RUNTIME_VERSION: "1787841095588"
+  SOURCE_URL: https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/
+  SOURCE_VERSION: "1787752423174"
+  PRODUCTION_BASELINE_SHA: b7d46b80a72772ebc16bc557500eb63916a1d63c
+  BASELINE_REF: baseline/prj-004-dashboard-3.0-b7d46b80
+  ROLLBACK_APPDEPLOY: AppDeploy:v11:1787752423174
+
+jobs:
+  frozen-rc-readiness:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: prj004-g14-frozen-rc-readiness
+      cancel-in-progress: false
+    steps:
+      - name: Checkout G14 control branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Immutable RC chain preflight
+        run: |
+          test "${GITHUB_REF_NAME}" = "prj-004/g14-frozen-rc-promotion-readiness"
+          echo "CONTROL_SHA=${GITHUB_SHA}" >> "$GITHUB_ENV"
+          git fetch --tags --force origin \
+            +refs/heads/main:refs/remotes/origin/main \
+            +refs/heads/${BASELINE_REF}:refs/remotes/origin/${BASELINE_REF} \
+            +refs/heads/${G08_BRANCH}:refs/remotes/origin/${G08_BRANCH}
+          test "$(git rev-parse "${RC_TAG}^{}")" = "${FREEZE_SHA}"
+          git merge-base --is-ancestor "${FREEZE_SHA}" "${GITHUB_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${G08_BRANCH})" = "${SOURCE_SHA}"
+          test "$(git rev-parse refs/remotes/origin/main)" = "${PRODUCTION_BASELINE_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${BASELINE_REF})" = "${PRODUCTION_BASELINE_SHA}"
+          python - <<'PY'
+          import json, os, subprocess
+          def load(sha,path): return json.loads(subprocess.check_output(['git','show',f'{sha}:{path}'],text=True))
+          f=load(os.environ['FREEZE_SHA'],'.c3l/dashboard3/G13_RELEASE_CANDIDATE_FREEZE.v1.json')
+          assert f['rc_id']=='PRJ004-DASHBOARD3-RC1'
+          assert f['rc_tag']==os.environ['RC_TAG']
+          assert f['status']=='RELEASE_CANDIDATE_FROZEN_NONPRODUCTION'
+          assert f['source_candidate_sha']==os.environ['SOURCE_SHA']
+          assert f['ui_runtime']['version']==os.environ['UI_RUNTIME_VERSION']
+          assert f['ui_runtime']['url']==os.environ['G12_URL'] and f['ui_runtime']['production_binding'] is False
+          assert f['rollback_reference']['git_sha']==os.environ['PRODUCTION_BASELINE_SHA']
+          assert f['rollback_reference']['git_ref']==os.environ['BASELINE_REF']
+          assert f['rollback_reference']['appdeploy']==os.environ['ROLLBACK_APPDEPLOY']
+          assert all(v=='PASS' for v in f['acceptance'].values())
+          assert f['promotion_requested'] is False and f['production_promotion'] is False and f['main_modified'] is False
+          print('G14_RC_TAG_TO_FREEZE=PASS')
+          print('G14_FREEZE_TO_SOURCE=PASS')
+          print('G14_SOURCE_TO_UI_RUNTIME=PASS')
+          print('G14_ROLLBACK_CHAIN=PASS')
+          print('G14_MAIN_UNCHANGED_PREFLIGHT=PASS')
+          PY
+
+      - name: Install Playwright verification harness
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Fresh authoritative 9-of-9 evidence-only lineage child
+        run: |
+          mkdir -p /tmp/g14
+          git checkout -B "${G08_BRANCH}" "refs/remotes/origin/${G08_BRANCH}"
+          test "$(git rev-parse HEAD)" = "${SOURCE_SHA}"
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          const fs=require('fs');
+          const authorities=[
+            ['PRJ004-AUTH-BASELINE-INTEGRITY-001','baseline_integrity','ORGANIZATOR_CONTROL_PLANE',300],
+            ['PRJ004-AUTH-DRIFT-001','drift','ORGANIZATOR_CONTROL_PLANE',300],
+            ['PRJ004-AUTH-SECURITY-RBAC-001','security_rbac','SECURITY_CONTROL_PLANE',60],
+            ['PRJ004-AUTH-MODULE-GRAPH-001','module_registry_graph','ORGANIZATOR_CONTROL_PLANE',300],
+            ['PRJ004-AUTH-ROUTING-001','routing','ORGANIZATOR_CONTROL_PLANE',60],
+            ['PRJ004-AUTH-SNAPSHOT-001','snapshots','ORGANIZATOR_CONTROL_PLANE',0],
+            ['PRJ004-AUTH-ALERTS-001','alerts','ALERT_EVENT_CONTROL_PLANE',60],
+            ['PRJ004-AUTH-BOUNDARY-001','organizator_agent_boundary','DUAL_BOUNDARY_CONTROL_ORGANIZATOR_AGENT',300],
+            ['PRJ004-AUTH-EVALUATION-HISTORY-001','evaluation_history','AGENT_EVALUATION_CONTROL_PLANE',300]
+          ];
+          (async()=>{const browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:1280,height:800}});await page.goto(process.env.SOURCE_URL,{waitUntil:'domcontentloaded',timeout:30000});await page.waitForFunction(()=>document.querySelector('#preflightState')?.textContent==='PASS'&&document.querySelector('#preflightSources')?.textContent==='9 / 9'&&document.querySelector('#preflightSecurity')?.textContent==='Security negatives: PASS',null,{timeout:30000});const selftest=await page.evaluate(()=>{const state=document.querySelector('#preflightState'),count=document.querySelector('#preflightSources'),security=document.querySelector('#preflightSecurity');return{gate_pass:state?.textContent==='PASS',verified_count:Number((count?.textContent||'0 / 9').split('/')[0].trim()),total_sources:Number((count?.textContent||'0 / 9').split('/')[1].trim()),schema_pass:state?.textContent==='PASS',freshness_pass:state?.textContent==='PASS',zero_false_verified:state?.textContent==='PASS',readback_hash:state?.getAttribute('data-readback-hash')||'',anonymous_session_denied:state?.getAttribute('data-session-denied')==='true',c2_denied:state?.getAttribute('data-c2-denied')==='true',security_text:security?.textContent||''}});if(!(selftest.gate_pass&&selftest.verified_count===9&&selftest.total_sources===9&&selftest.schema_pass&&selftest.freshness_pass&&selftest.zero_false_verified&&/^[a-f0-9]{64}$/.test(selftest.readback_hash)&&selftest.anonymous_session_denied&&selftest.c2_denied))throw new Error('G14_FRESH_SOURCE_NOT_ACCEPTABLE');const collected_at=new Date().toISOString();const source_projection=authorities.map(([authority_id,domain,owner,sla])=>({authority_id,domain,owner,freshness_sla_seconds:sla,verification_state:'VERIFIED_AT_COLLECTION',schema_pass:true,freshness_pass:true,evidence_scope:'AGGREGATE_9_OF_9',evidence_reference:selftest.readback_hash,permission_state:'READ_ONLY_PUBLIC_AGGREGATE'}));const out={project_id:'PRJ-004',gate:'G-PRJ004-12',artifact:'APPDEPLOY_RUNTIME_EVIDENCE_BRIDGE',version:'1.0',status:'COLLECTED_FROM_AUTHORITATIVE_RUNTIME',collected_at,bridge_freshness_limit_seconds:300,source_runtime:{app_id:'c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t',url:process.env.SOURCE_URL,snapshot_version:process.env.SOURCE_VERSION,transport:'OFFICIAL_APPDEPLOY_CLIENT_API_VIA_RENDERED_RUNTIME'},selftest,source_projection,collector:{workflow:'PRJ-004 G14 Frozen-RC Final Promotion Readiness',trigger_sha:process.env.CONTROL_SHA,run_id:process.env.GITHUB_RUN_ID,acceptance_refresh:'G14_PROMOTION_READINESS_ATOMIC'},production_promotion:false};fs.writeFileSync(process.env.EVIDENCE_PATH,JSON.stringify(out,null,2)+'\n');fs.writeFileSync('/tmp/g14/fresh-source.json',JSON.stringify({collected_at,readback_hash:selftest.readback_hash,security_negatives:true},null,2)+'\n');await page.screenshot({path:'/tmp/g14/source-runtime-fresh.png',fullPage:true});console.log('G14_FRESH_9_OF_9=PASS');console.log('G14_SECURITY_NEGATIVES=PASS');console.log('G14_FRESH_HASH='+selftest.readback_hash);await browser.close()})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${EVIDENCE_PATH}"
+          test "$(git diff --cached --name-only | wc -l)" -eq 1
+          test "$(git diff --cached --name-only)" = "${EVIDENCE_PATH}"
+          git commit -m "PRJ-004 G14: refresh evidence for frozen RC readiness"
+          EVIDENCE_SHA="$(git rev-parse HEAD)"
+          test "$(git rev-parse HEAD^)" = "${SOURCE_SHA}"
+          test "$(git diff --name-only "${SOURCE_SHA}" "${EVIDENCE_SHA}")" = "${EVIDENCE_PATH}"
+          FRESH_HASH="$(python -c "import json;print(json.load(open('${EVIDENCE_PATH}'))['selftest']['readback_hash'])")"
+          echo "EVIDENCE_SHA=${EVIDENCE_SHA}" >> "$GITHUB_ENV"
+          echo "FRESH_HASH=${FRESH_HASH}" >> "$GITHUB_ENV"
+          git push origin "HEAD:${G08_BRANCH}"
+          test "$(git ls-remote origin "refs/heads/${G08_BRANCH}" | awk '{print $1}')" = "${EVIDENCE_SHA}"
+          echo "G14_EVIDENCE_ONLY_CHILD=PASS"
+          echo "G14_EVIDENCE_SHA=${EVIDENCE_SHA}"
+
+      - name: Same-RC fresh lineage and contract regression
+        run: |
+          test "$(git rev-parse HEAD)" = "${EVIDENCE_SHA}"
+          test "$(git diff --name-only "${SOURCE_SHA}" "${EVIDENCE_SHA}")" = "${EVIDENCE_PATH}"
+          test "$(git ls-remote origin refs/heads/main | awk '{print $1}')" = "${PRODUCTION_BASELINE_SHA}"
+          python - <<'PY'
+          import json, os, datetime, subprocess
+          e=json.load(open(os.environ['EVIDENCE_PATH'],encoding='utf-8'))
+          def load(sha,path): return json.loads(subprocess.check_output(['git','show',f'{sha}:{path}'],text=True))
+          r=load(os.environ['SOURCE_SHA'],'.c3l/dashboard3/G12_NONPROD_RUNTIME_BINDING.v1.json')
+          c=load(os.environ['SOURCE_SHA'],'.c3l/dashboard3/G12_NORMALIZED_RUNTIME_ADAPTER_CONTRACT.v1.json')
+          g10=load(os.environ['SOURCE_SHA'],'.c3l/dashboard3/G10_UI_COMPONENT_CONTRACT.v0.1.json')
+          g11=load(os.environ['SOURCE_SHA'],'.c3l/dashboard3/G11_NONPROD_RUNTIME_BINDING.v1.json')
+          g08=load(os.environ['SOURCE_SHA'],'.c3l/dashboard3/G08_LOCKED_BASELINE_REENTRY_CONTRACT.v1.json')
+          age=(datetime.datetime.now(datetime.timezone.utc)-datetime.datetime.fromisoformat(e['collected_at'].replace('Z','+00:00'))).total_seconds()
+          assert 0<=age<=300
+          assert e['selftest']['gate_pass'] and e['selftest']['verified_count']==9 and e['selftest']['total_sources']==9
+          assert e['selftest']['schema_pass'] and e['selftest']['freshness_pass'] and e['selftest']['zero_false_verified']
+          assert e['selftest']['anonymous_session_denied'] and e['selftest']['c2_denied'] and e['selftest']['readback_hash']==os.environ['FRESH_HASH']
+          assert e['source_runtime']['snapshot_version']==os.environ['SOURCE_VERSION'] and e['production_promotion'] is False
+          assert r['runtime']['version']==os.environ['UI_RUNTIME_VERSION'] and r['runtime']['production_binding'] is False
+          assert r['adapter']['backend_write_endpoints']==[] and r['isolation']['c2_capability'] is False and r['isolation']['cross_owner_write'] is False
+          assert c['architecture']['backend_write_endpoints']==0 and c['architecture']['c2_capability'] is False
+          assert g10['acceptance']['all_components_c2_free'] is True and g10['global_component_rules']['direct_authoritative_source_fetch']=='FORBIDDEN' and g10['global_component_rules']['unknown_to_pass_coercion']=='FORBIDDEN'
+          assert g11['runtime']['production_binding'] is False
+          assert g08['locked_baseline']['production_commit_sha']==os.environ['PRODUCTION_BASELINE_SHA']
+          print('G14_FRESH_AUTHORITY_LINEAGE=PASS')
+          print('G14_SECURITY_CONTRACT_REGRESSION=PASS')
+          print('G14_G10_G11_G12_G08_NONDEGRADATION=PASS')
+          PY
+
+      - name: Frozen runtime browser security fail-closed and non-degradation
+        run: |
+          node <<'NODE'
+          const { chromium }=require('playwright');const fs=require('fs');const assert=(c,m)=>{if(!c)throw new Error(m)};const ids=['SYS-01','INT-01','SEC-01','REP-03','MOD-02','ROU-01','EVA-01'];
+          (async()=>{const browser=await chromium.launch({headless:true});const context=await browser.newContext();const direct=[];const writes=[];const readEnvelope=[];context.on('request',r=>{const u=r.url(),m=r.method();if(u.includes('c3l-dashboard-prj-004-g04-runtime-candidate'))direct.push(u);let p;try{p=new URL(u)}catch{};if(m==='POST'&&p?.origin==='https://api-v2.appdeploy.ai'&&p?.pathname==='/p'){readEnvelope.push(u);return}if(!['GET','HEAD','OPTIONS'].includes(m))writes.push(m+' '+u)});const page=await context.newPage();await page.setViewportSize({width:1440,height:1000});await page.goto(process.env.G12_URL,{waitUntil:'networkidle',timeout:30000});await page.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: PASS',null,{timeout:30000});const text=async(id)=>(await page.getByTestId(id).textContent()||'').trim();assert(await text('authority-count')==='9 / 9 authorities','AUTHORITY_COUNT');assert(['Evidence: FRESH','Evidence: AGING'].includes(await text('bridge-freshness')),'FRESHNESS');await page.getByTestId('mode-switch').getByRole('button',{name:'Lite'}).click();const lite={};for(const id of ids)lite[id]=await text('state-'+id);await page.getByTestId('card-INT-01').getByRole('button',{name:/Evidence/}).click();const ev=(await page.getByTestId('evidence-drawer').textContent()||'');assert(ev.includes(process.env.FRESH_HASH),'FRESH_HASH_NOT_PROPAGATED');assert(ev.includes('READ_ONLY_PUBLIC_AGGREGATE'),'PERMISSION_EVIDENCE');await page.getByRole('button',{name:'Close evidence'}).click();await page.getByTestId('mode-switch').getByRole('button',{name:'Full'}).click();for(const id of ids)assert(await text('state-'+id)===lite[id],'LITE_FULL_DRIFT_'+id);assert((await page.getByTestId('oa-boundary').textContent()||'').includes('OWNERSHIP BOUNDARY — VIEW ONLY'),'OA_BOUNDARY');const buttons=(await page.getByRole('button').allTextContents()).join(' ').toLowerCase();for(const bad of ['change route','deploy','rollback','mutate','override severity','write authority','change alert state','delete alert'])assert(!buttons.includes(bad),'FORBIDDEN_CONTROL_'+bad);let ov=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,bw:document.body.scrollWidth}));assert(ov.sw<=ov.cw+1&&ov.bw<=ov.cw+1,'DESKTOP_OVERFLOW');await page.screenshot({path:'/tmp/g14/frozen-runtime-desktop.png',fullPage:true});const mobile=await context.newPage();await mobile.setViewportSize({width:375,height:667});await mobile.goto(process.env.G12_URL,{waitUntil:'networkidle',timeout:30000});await mobile.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: PASS',null,{timeout:30000});ov=await mobile.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,bw:document.body.scrollWidth}));assert(ov.sw<=ov.cw+1&&ov.bw<=ov.cw+1,'MOBILE_OVERFLOW');await mobile.screenshot({path:'/tmp/g14/frozen-runtime-mobile.png',fullPage:true});const fail=await browser.newPage({viewport:{width:1280,height:800}});await fail.route('**/*',async route=>{if(route.request().url().includes('normalized-runtime'))return route.fulfill({status:500,contentType:'application/json',body:'{"error":"g14_fail_closed_probe"}'});return route.continue()});await fail.goto(process.env.G12_URL,{waitUntil:'networkidle',timeout:30000});await fail.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: BLOCKED',null,{timeout:30000});const ft=async(id)=>(await fail.getByTestId(id).textContent()||'').trim();assert(await ft('state-SYS-01')==='UNKNOWN','FAIL_SYS');assert(await ft('state-SEC-01')==='UNKNOWN','FAIL_SEC');assert(await ft('boundary-state')==='BLOCKED','FAIL_BOUNDARY');assert(!((await fail.getByTestId('state-SYS-01').getAttribute('class')||'').includes('pass')),'FAIL_FALSE_GREEN');await fail.getByTestId('card-SYS-01').getByRole('button',{name:/Evidence/}).click();assert((await fail.getByTestId('evidence-drawer').textContent()||'').includes('NOT_PROVEN'),'FAIL_EVIDENCE_SYNTHESIS');await fail.screenshot({path:'/tmp/g14/fail-closed.png',fullPage:true});assert(direct.length===0,'DIRECT_SOURCE_FETCH');assert(readEnvelope.length>0,'APPDEPLOY_READ_TRANSPORT_MISSING');assert(writes.length===0,'FORBIDDEN_WRITES_'+writes.join(','));fs.writeFileSync('/tmp/g14/browser-result.json',JSON.stringify({status:'PASS',fresh_hash:process.env.FRESH_HASH,proofs:{authority_9_of_9:true,lite_full_parity:true,evidence_propagation:true,oa_boundary:true,desktop_mobile_no_overflow:true,fail_closed:true,direct_authoritative_source_fetches:0,forbidden_application_writes:0}},null,2)+'\n');console.log('G14_FROZEN_RUNTIME_9_OF_9=PASS');console.log('G14_SECURITY_FAIL_CLOSED=PASS');console.log('G14_NONDEGRADATION=PASS');await browser.close()})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+          test "$(git ls-remote origin refs/heads/main | awk '{print $1}')" = "${PRODUCTION_BASELINE_SHA}"
+          test "$(git rev-parse "${RC_TAG}^{}")" = "${FREEZE_SHA}"
+
+      - name: Record PROMOTION_ELIGIBLE decision without promotion
+        run: |
+          git fetch --no-tags origin +refs/heads/prj-004/g14-frozen-rc-promotion-readiness:refs/remotes/origin/prj-004/g14-frozen-rc-promotion-readiness
+          git checkout -B prj-004/g14-frozen-rc-promotion-readiness refs/remotes/origin/prj-004/g14-frozen-rc-promotion-readiness
+          test "$(git rev-parse HEAD)" = "${CONTROL_SHA}"
+          test "$(git ls-remote origin refs/heads/main | awk '{print $1}')" = "${PRODUCTION_BASELINE_SHA}"
+          test "$(git ls-remote origin "refs/heads/${G08_BRANCH}" | awk '{print $1}')" = "${EVIDENCE_SHA}"
+          test "$(git rev-parse "${RC_TAG}^{}")" = "${FREEZE_SHA}"
+          python - <<'PY'
+          import json, os, datetime
+          browser=json.load(open('/tmp/g14/browser-result.json',encoding='utf-8'))
+          now=datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00','Z')
+          out={'project_id':'PRJ-004','gate':'G-PRJ004-14','artifact':'FROZEN_RC_FINAL_PROMOTION_READINESS','version':'1.0','status':'PROMOTION_ELIGIBLE','rc_id':'PRJ004-DASHBOARD3-RC1','immutable_chain':{'rc_tag':os.environ['RC_TAG'],'freeze_sha':os.environ['FREEZE_SHA'],'source_sha':os.environ['SOURCE_SHA'],'ui_runtime_version':os.environ['UI_RUNTIME_VERSION']},'fresh_evidence_lineage':{'parent_source_sha':os.environ['SOURCE_SHA'],'evidence_only_child_sha':os.environ['EVIDENCE_SHA'],'readback_hash':os.environ['FRESH_HASH'],'source_runtime_version':os.environ['SOURCE_VERSION'],'fresh_9_of_9':'PASS'},'rollback_reference':{'git_sha':os.environ['PRODUCTION_BASELINE_SHA'],'git_ref':os.environ['BASELINE_REF'],'appdeploy':os.environ['ROLLBACK_APPDEPLOY']},'acceptance':{'rc_tag_freeze_source_runtime_chain':'PASS','fresh_authority_evidence_lineage':'PASS','security':'PASS','fail_closed':'PASS','non_degradation':'PASS','lite_full_semantic_parity':'PASS','organizer_agent_boundary':'PASS','zero_forbidden_writes':'PASS','main_unchanged':'PASS'},'tag_signature':{'state':'UNSIGNED','blocking_under_g14_contract':False,'reason':'Exact annotated-tag object and peeled commit were independently read back; signed tag is not a stated G14 acceptance requirement.'},'browser_proofs':browser['proofs'],'decision_time':now,'workflow_run_id':os.environ['GITHUB_RUN_ID'],'merge_performed':False,'production_promotion':False,'main_modified':False}
+          import os as _os
+          _os.makedirs('.c3l/dashboard3',exist_ok=True)
+          with open('.c3l/dashboard3/G14_FINAL_PROMOTION_READINESS.v1.json','w',encoding='utf-8') as f: json.dump(out,f,indent=2);f.write('\n')
+          with open('/tmp/g14/final-decision.json','w',encoding='utf-8') as f: json.dump(out,f,indent=2);f.write('\n')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .c3l/dashboard3/G14_FINAL_PROMOTION_READINESS.v1.json
+          test "$(git diff --cached --name-only | wc -l)" -eq 1
+          git commit -m "PRJ-004 G14: record frozen RC promotion readiness"
+          DECISION_SHA="$(git rev-parse HEAD)"
+          echo "DECISION_SHA=${DECISION_SHA}" >> "$GITHUB_ENV"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          echo "G14_DECISION=PROMOTION_ELIGIBLE"
+          echo "G14_DECISION_SHA=${DECISION_SHA}"
+
+      - name: Independent final readback and zero-promotion proof
+        run: |
+          test "$(git ls-remote origin "refs/heads/${GITHUB_REF_NAME}" | awk '{print $1}')" = "${DECISION_SHA}"
+          test "$(git ls-remote origin "refs/heads/${G08_BRANCH}" | awk '{print $1}')" = "${EVIDENCE_SHA}"
+          test "$(git ls-remote origin refs/heads/main | awk '{print $1}')" = "${PRODUCTION_BASELINE_SHA}"
+          test "$(git rev-parse "${RC_TAG}^{}")" = "${FREEZE_SHA}"
+          python - <<'PY'
+          import json
+          x=json.load(open('.c3l/dashboard3/G14_FINAL_PROMOTION_READINESS.v1.json',encoding='utf-8'))
+          assert x['status']=='PROMOTION_ELIGIBLE'
+          assert all(v=='PASS' for v in x['acceptance'].values())
+          assert x['merge_performed'] is False and x['production_promotion'] is False and x['main_modified'] is False
+          print('G14_PROMOTION_ELIGIBLE=PASS')
+          print('G14_MAIN_UNCHANGED=PASS')
+          print('G14_MERGE_PERFORMED=FALSE')
+          print('G14_PRODUCTION_PROMOTION=FALSE')
+          PY
+          printf 'rc_tag=%s\nfreeze_sha=%s\nsource_sha=%s\nevidence_sha=%s\nfresh_hash=%s\nui_runtime=%s\nrollback_git=%s\nrollback_appdeploy=%s\nmain=%s\ndecision=PROMOTION_ELIGIBLE\nmerge=false\npromotion=false\n' "${RC_TAG}" "${FREEZE_SHA}" "${SOURCE_SHA}" "${EVIDENCE_SHA}" "${FRESH_HASH}" "${UI_RUNTIME_VERSION}" "${PRODUCTION_BASELINE_SHA}" "${ROLLBACK_APPDEPLOY}" "${PRODUCTION_BASELINE_SHA}" > /tmp/g14/final-summary.txt
+
+      - name: Upload G14 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: prj004-g14-frozen-rc-readiness-${{ github.run_id }}
+          path: /tmp/g14
+          if-no-files-found: error
+          retention-days: 30
