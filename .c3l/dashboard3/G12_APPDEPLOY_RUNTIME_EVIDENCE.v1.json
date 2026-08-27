@@ -1,0 +1,143 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-12",
+  "artifact": "APPDEPLOY_RUNTIME_EVIDENCE_BRIDGE",
+  "version": "1.0",
+  "status": "COLLECTED_FROM_AUTHORITATIVE_RUNTIME",
+  "collected_at": "2026-08-27T14:21:21.951Z",
+  "bridge_freshness_limit_seconds": 60,
+  "source_runtime": {
+    "app_id": "c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t",
+    "url": "https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/",
+    "snapshot_version": "1787752423174",
+    "transport": "OFFICIAL_APPDEPLOY_CLIENT_API_VIA_RENDERED_RUNTIME"
+  },
+  "selftest": {
+    "gate_pass": true,
+    "verified_count": 9,
+    "total_sources": 9,
+    "schema_pass": true,
+    "freshness_pass": true,
+    "zero_false_verified": true,
+    "readback_hash": "1ec71c18cf714bf170fb1613a1995510fb11f0ceab6163aebcf3556c83923ac2",
+    "anonymous_session_denied": true,
+    "c2_denied": true,
+    "security_text": "Security negatives: PASS"
+  },
+  "source_projection": [
+    {
+      "authority_id": "PRJ004-AUTH-BASELINE-INTEGRITY-001",
+      "domain": "baseline_integrity",
+      "owner": "ORGANIZATOR_CONTROL_PLANE",
+      "freshness_sla_seconds": 300,
+      "verification_state": "VERIFIED_AT_COLLECTION",
+      "schema_pass": true,
+      "freshness_pass": true,
+      "evidence_scope": "AGGREGATE_9_OF_9",
+      "evidence_reference": "1ec71c18cf714bf170fb1613a1995510fb11f0ceab6163aebcf3556c83923ac2",
+      "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
+    },
+    {
+      "authority_id": "PRJ004-AUTH-DRIFT-001",
+      "domain": "drift",
+      "owner": "ORGANIZATOR_CONTROL_PLANE",
+      "freshness_sla_seconds": 300,
+      "verification_state": "VERIFIED_AT_COLLECTION",
+      "schema_pass": true,
+      "freshness_pass": true,
+      "evidence_scope": "AGGREGATE_9_OF_9",
+      "evidence_reference": "1ec71c18cf714bf170fb1613a1995510fb11f0ceab6163aebcf3556c83923ac2",
+      "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
+    },
+    {
+      "authority_id": "PRJ004-AUTH-SECURITY-RBAC-001",
+      "domain": "security_rbac",
+      "owner": "SECURITY_CONTROL_PLANE",
+      "freshness_sla_seconds": 60,
+      "verification_state": "VERIFIED_AT_COLLECTION",
+      "schema_pass": true,
+      "freshness_pass": true,
+      "evidence_scope": "AGGREGATE_9_OF_9",
+      "evidence_reference": "1ec71c18cf714bf170fb1613a1995510fb11f0ceab6163aebcf3556c83923ac2",
+      "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
+    },
+    {
+      "authority_id": "PRJ004-AUTH-MODULE-GRAPH-001",
+      "domain": "module_registry_graph",
+      "owner": "ORGANIZATOR_CONTROL_PLANE",
+      "freshness_sla_seconds": 300,
+      "verification_state": "VERIFIED_AT_COLLECTION",
+      "schema_pass": true,
+      "freshness_pass": true,
+      "evidence_scope": "AGGREGATE_9_OF_9",
+      "evidence_reference": "1ec71c18cf714bf170fb1613a1995510fb11f0ceab6163aebcf3556c83923ac2",
+      "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
+    },
+    {
+      "authority_id": "PRJ004-AUTH-ROUTING-001",
+      "domain": "routing",
+      "owner": "ORGANIZATOR_CONTROL_PLANE",
+      "freshness_sla_seconds": 60,
+      "verification_state": "VERIFIED_AT_COLLECTION",
+      "schema_pass": true,
+      "freshness_pass": true,
+      "evidence_scope": "AGGREGATE_9_OF_9",
+      "evidence_reference": "1ec71c18cf714bf170fb1613a1995510fb11f0ceab6163aebcf3556c83923ac2",
+      "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
+    },
+    {
+      "authority_id": "PRJ004-AUTH-SNAPSHOT-001",
+      "domain": "snapshots",
+      "owner": "ORGANIZATOR_CONTROL_PLANE",
+      "freshness_sla_seconds": 0,
+      "verification_state": "VERIFIED_AT_COLLECTION",
+      "schema_pass": true,
+      "freshness_pass": true,
+      "evidence_scope": "AGGREGATE_9_OF_9",
+      "evidence_reference": "1ec71c18cf714bf170fb1613a1995510fb11f0ceab6163aebcf3556c83923ac2",
+      "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
+    },
+    {
+      "authority_id": "PRJ004-AUTH-ALERTS-001",
+      "domain": "alerts",
+      "owner": "ALERT_EVENT_CONTROL_PLANE",
+      "freshness_sla_seconds": 60,
+      "verification_state": "VERIFIED_AT_COLLECTION",
+      "schema_pass": true,
+      "freshness_pass": true,
+      "evidence_scope": "AGGREGATE_9_OF_9",
+      "evidence_reference": "1ec71c18cf714bf170fb1613a1995510fb11f0ceab6163aebcf3556c83923ac2",
+      "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
+    },
+    {
+      "authority_id": "PRJ004-AUTH-BOUNDARY-001",
+      "domain": "organizator_agent_boundary",
+      "owner": "DUAL_BOUNDARY_CONTROL_ORGANIZATOR_AGENT",
+      "freshness_sla_seconds": 300,
+      "verification_state": "VERIFIED_AT_COLLECTION",
+      "schema_pass": true,
+      "freshness_pass": true,
+      "evidence_scope": "AGGREGATE_9_OF_9",
+      "evidence_reference": "1ec71c18cf714bf170fb1613a1995510fb11f0ceab6163aebcf3556c83923ac2",
+      "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
+    },
+    {
+      "authority_id": "PRJ004-AUTH-EVALUATION-HISTORY-001",
+      "domain": "evaluation_history",
+      "owner": "AGENT_EVALUATION_CONTROL_PLANE",
+      "freshness_sla_seconds": 300,
+      "verification_state": "VERIFIED_AT_COLLECTION",
+      "schema_pass": true,
+      "freshness_pass": true,
+      "evidence_scope": "AGGREGATE_9_OF_9",
+      "evidence_reference": "1ec71c18cf714bf170fb1613a1995510fb11f0ceab6163aebcf3556c83923ac2",
+      "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
+    }
+  ],
+  "collector": {
+    "workflow": "PRJ-004 G12 Collect AppDeploy Runtime Evidence",
+    "head_sha": "448d73ac81127bdbc870851b3e20be52374c6dc7",
+    "run_id": "33081695658"
+  },
+  "production_promotion": false
+}
