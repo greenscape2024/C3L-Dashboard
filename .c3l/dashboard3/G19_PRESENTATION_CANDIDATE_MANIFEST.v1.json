@@ -1,0 +1,63 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-19",
+  "artifact": "PRESENTATION_ONLY_CANDIDATE_MANIFEST",
+  "version": "1.0",
+  "status": "CANDIDATE_READY_NOT_PROMOTED",
+  "baseline": {
+    "exact_sha": "d60ee283b7c87b882b406001ba86205ae5714179",
+    "accepted_pointer_ref": "authority/prj-004-accepted-production",
+    "baseline_pointer": "baseline/prj-004-dashboard-3.0-g18-d60ee283"
+  },
+  "production": {
+    "app_id": "c3l-dashboard-3-0-g17r-v3-candidate-jpoi50",
+    "exact_version": "1787867256702",
+    "context_label": "PRJ-004 · NON-PRODUCTION v3",
+    "mutated_by_g19": false
+  },
+  "candidate": {
+    "app_id": "c3l-dashboard-3-0-g19-presentation-candidate-81enqm",
+    "exact_version": "1787872552109",
+    "url": "https://c3l-dashboard-3-0-g19-presentation-candidate-81enqm.v2.appdeploy.ai/",
+    "status": "READY",
+    "context_label": "PRJ-004 · PRODUCTION",
+    "promotion_requested": false
+  },
+  "source_conformance": {
+    "normalized_adapter": "EXACT_CONTENT_EQUIVALENT",
+    "backend_runtime_logic": "SEMANTICALLY_EQUIVALENT",
+    "backend_formatting_only_differences_allowed": true,
+    "release_pointer_model_changed": false,
+    "authority_ids_changed": false,
+    "freshness_logic_changed": false,
+    "fail_closed_logic_changed": false,
+    "security_logic_changed": false,
+    "organizator_agent_boundary_logic_changed": false,
+    "healthcheck_internal_mode_changed": false,
+    "runtime_route_surface_added_by_g19": false,
+    "candidate_scaffold_duplicate_realtime_route_incident": {
+      "candidate_v1": "1787872444234",
+      "classification": "NEW_APP_SCAFFOLD_DUPLICATION_BEFORE_ACCEPTANCE",
+      "accepted": false,
+      "remediated_in_candidate_v2": "1787872552109"
+    }
+  },
+  "allowed_user_visible_delta": {
+    "count": 1,
+    "path": "src/DashboardCandidate.tsx",
+    "from": "PRJ-004 · NON-PRODUCTION v3",
+    "to": "PRJ-004 · PRODUCTION"
+  },
+  "post_release_observation": {
+    "status": "BLOCKER_FOUND_FAIL_CLOSED",
+    "freshness_operational_gap_proven": true,
+    "presentation_candidate_must_not_mask_gap": true
+  },
+  "production_controls": {
+    "main_write": false,
+    "accepted_pointer_write": false,
+    "production_app_deploy": false,
+    "production_promotion": false
+  },
+  "rule_0": "STALE_OR_UNKNOWN_NEVER_EQUALS_PASS"
+}
