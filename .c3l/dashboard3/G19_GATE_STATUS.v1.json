@@ -1,0 +1,77 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-19",
+  "artifact": "GATE_STATUS",
+  "version": "1.0",
+  "status": "HOLD_BLOCKED_NOT_CLOSED",
+  "baseline": {
+    "production_sha": "d60ee283b7c87b882b406001ba86205ae5714179",
+    "accepted_pointer_ref": "authority/prj-004-accepted-production",
+    "accepted_pointer_sha": "d60ee283b7c87b882b406001ba86205ae5714179",
+    "baseline_pointer": "baseline/prj-004-dashboard-3.0-g18-d60ee283",
+    "baseline_pointer_sha": "d60ee283b7c87b882b406001ba86205ae5714179"
+  },
+  "subgates": {
+    "post_release_observation": {
+      "status": "FAIL_CLOSED_BLOCKER_FOUND",
+      "run_id": 33125235263,
+      "job_id": 98701672741,
+      "finding": "AUTHORITY_EVIDENCE_BRIDGE_STALE_AFTER_300_SECONDS_WITH_NO_PERSISTENT_REFRESH_PATH_PROVEN",
+      "production_identity_drift": false,
+      "hosting_target_drift": false,
+      "security_bypass": false,
+      "fail_closed_behavior": "PASS"
+    },
+    "g18_baseline_reentry": {
+      "status": "PASS",
+      "branch": "prj-004/g19-g18-baseline-reentry",
+      "derived_from_exact_baseline": true,
+      "behind_by": 0,
+      "production_surface_mutation": 0
+    },
+    "presentation_label_candidate": {
+      "status": "PASS_CANDIDATE_ONLY",
+      "app_id": "c3l-dashboard-3-0-g19-presentation-candidate-81enqm",
+      "exact_version": "1787872552109",
+      "runtime_status": "READY",
+      "allowed_visible_delta": "PRJ-004 · NON-PRODUCTION v3 -> PRJ-004 · PRODUCTION",
+      "normalized_adapter_delta": 0,
+      "authority_semantic_delta": 0,
+      "security_semantic_delta": 0,
+      "runtime_semantic_delta": 0,
+      "production_promotion": false
+    },
+    "same_state_semantic_parity": {
+      "status": "PASS",
+      "run_id": 33125816170,
+      "job_id": 98703588826,
+      "artifact_id": 9668303359,
+      "artifact_sha256": "f5307a195bcfbe547e6d730f0507793fc68735b1d816d679a21a32367cd8ae27",
+      "label_delta_only": "PASS",
+      "runtime_parity": "PASS",
+      "fail_closed_parity": "PASS",
+      "hostile_containment": "PASS",
+      "unauthorized_application_writes": 0,
+      "final_production_preservation": "PASS"
+    }
+  },
+  "production_preservation": {
+    "production_app_id": "c3l-dashboard-3-0-g17r-v3-candidate-jpoi50",
+    "production_exact_version": "1787867256702",
+    "production_app_new_version_created_in_g19": false,
+    "main_changed_by_g19": false,
+    "accepted_pointer_changed_by_g19": false,
+    "baseline_pointer_changed_by_g19": false,
+    "production_promotion_performed": false
+  },
+  "blocking_condition": {
+    "code": "PERSISTENT_AUTHORITY_EVIDENCE_FRESHNESS_NOT_PROVEN",
+    "description": "The accepted runtime correctly fails closed once the GitHub-backed authority evidence bridge exceeds the 300 second freshness limit. No persistent refresh path was found/proven during G19.",
+    "one_time_refresh_is_sufficient": false,
+    "new_scheduler_authorized_in_g19": false,
+    "freshness_contract_revision_authorized_in_g19": false
+  },
+  "closure_rule": "G19 remains HOLD until a persistent freshness path is proven or the freshness contract is explicitly revised and independently re-observed beyond the current 300-second boundary.",
+  "single_next_gate": "G-PRJ004-19R — PERSISTENT AUTHORITY-EVIDENCE FRESHNESS REMEDIATION + POST-RELEASE RE-OBSERVATION",
+  "rule_0": "STALE_OR_UNKNOWN_NEVER_EQUALS_PASS"
+}
