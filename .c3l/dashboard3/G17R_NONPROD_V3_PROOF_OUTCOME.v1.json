@@ -1,0 +1,125 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-17R",
+  "artifact": "NONPRODUCTION_V3_PROOF_OUTCOME",
+  "version": "1.0",
+  "status": "PASS_CLOSED_NONPRODUCTION",
+  "production_mutation_performed": false,
+  "production_promotion_requested": false,
+  "authorization_window_open": true,
+  "production_state_after_gate": {
+    "main_sha": "913a1cfb711ac6fe53a7a681c23682e1e9ea9b0d",
+    "main_tree_sha": "df0055b58d2703c72f19223548c7bff3a4eec907",
+    "accepted_production_pointer_ref": "refs/heads/authority/prj-004-accepted-production",
+    "accepted_production_pointer_sha": "913a1cfb711ac6fe53a7a681c23682e1e9ea9b0d",
+    "main_equals_accepted_pointer": true,
+    "production_launcher_source_changed_in_g17r": false,
+    "production_bound_g16_app_id": "c3l-dashboard-3-0-g16-re-entry-candidate-lsknko",
+    "production_bound_g16_exact_version": "1787860318709",
+    "production_bound_g16_new_version_created_in_g17r": false,
+    "production_bound_g16_status": "READY"
+  },
+  "release_authority_contract": {
+    "path": ".c3l/dashboard3/G17R_RELEASE_BASELINE_AUTHORITY_CONTRACT.v1.json",
+    "governance_branch": "prj-004/g17r-release-baseline-authority",
+    "accepted_pointer_ref": "refs/heads/authority/prj-004-accepted-production",
+    "release_pass_rule": "resolved(main).sha == resolved(accepted_production_pointer).sha",
+    "hardcoded_premerge_sha_forbidden": true,
+    "pointer_update_does_not_write_main": true,
+    "pointer_advance_requires_exact_independently_read_back_production_sha": true
+  },
+  "isolated_v3_candidate": {
+    "app_id": "c3l-dashboard-3-0-g17r-v3-candidate-jpoi50",
+    "url": "https://c3l-dashboard-3-0-g17r-v3-candidate-jpoi50.v2.appdeploy.ai/",
+    "version_name": "v1",
+    "snapshot_version": "1787867256702",
+    "status": "READY",
+    "frontend_errors": 0,
+    "backend_errors": 0,
+    "binding_mode": "ACCEPTED_PRODUCTION_POINTER_READ_ONLY",
+    "production_bound": false
+  },
+  "fresh_authority_evidence": {
+    "workflow_run_id": 33119495881,
+    "final_job_id": 98684248717,
+    "result": "SUCCESS",
+    "source_runtime_app_id": "c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t",
+    "source_runtime_snapshot_version": "1787752423174",
+    "evidence_branch": "prj-004/g08-development-reentry",
+    "evidence_path": ".c3l/dashboard3/G12_APPDEPLOY_RUNTIME_EVIDENCE.v1.json",
+    "authorities": "9_OF_9",
+    "gate_compatibility": "G-PRJ004-12",
+    "production_main_preservation": "PASS"
+  },
+  "final_browser_and_contract_proof": {
+    "workflow_run_id": 33119893373,
+    "final_job_id": 98684507065,
+    "result": "SUCCESS",
+    "v3_9_of_9": "PASS",
+    "rep_03": "PASS",
+    "sys_01": "PASS",
+    "security": "PASS",
+    "organizator_agent_boundary": "PASS",
+    "fail_closed": "PASS",
+    "lite_full_parity": "PASS",
+    "pointer_provenance": "PASS",
+    "c2_controls_present": false,
+    "unauthorized_writes": 0
+  },
+  "first_proof_attempt": {
+    "job_id": 98683868124,
+    "result": "FAIL_CLOSED",
+    "reason": "AUTHORITATIVE_EVIDENCE_EXCEEDED_300_SECOND_BRIDGE_SLA_BEFORE_BROWSER_ACCEPTANCE",
+    "v3_code_changed_after_failure": false,
+    "promotion_simulation_started": false,
+    "remediation": "REFRESH_AUTHORITATIVE_9_OF_9_EVIDENCE_AND_RERUN_SAME_PROOF"
+  },
+  "promotion_simulation": {
+    "initial_sim_main_sha": "913a1cfb711ac6fe53a7a681c23682e1e9ea9b0d",
+    "initial_sim_pointer_sha": "913a1cfb711ac6fe53a7a681c23682e1e9ea9b0d",
+    "initial_match": "PASS",
+    "simulated_promoted_sha": "8ad9a4d86c1d33ed2f65b931af3adddb697c1466",
+    "simulated_main_advance": "PASS",
+    "pre_pointer_advance_mismatch_detected": "PASS",
+    "atomic_pointer_advance": "PASS",
+    "post_pointer_match": "PASS",
+    "post_pointer_rep_03_model": "PASS",
+    "final_sim_main_sha": "8ad9a4d86c1d33ed2f65b931af3adddb697c1466",
+    "final_sim_pointer_sha": "8ad9a4d86c1d33ed2f65b931af3adddb697c1466",
+    "production_main_unchanged": "PASS",
+    "canonical_accepted_production_pointer_unchanged": "PASS"
+  },
+  "proof_artifact": {
+    "github_actions_artifact_id": 9666104543,
+    "name": "prj004-g17r-v3-proof-33119893373",
+    "zip_sha256": "1c9fcf8ac0bf9c5ebf90b12eb469148b9a19ce2cc68ebd6defbdf5fad779121e",
+    "contents": [
+      "v3-browser.json",
+      "pointer-simulation.json"
+    ]
+  },
+  "independent_final_readback": {
+    "main_sha": "913a1cfb711ac6fe53a7a681c23682e1e9ea9b0d",
+    "accepted_pointer_sha": "913a1cfb711ac6fe53a7a681c23682e1e9ea9b0d",
+    "sim_main_sha": "8ad9a4d86c1d33ed2f65b931af3adddb697c1466",
+    "sim_pointer_sha": "8ad9a4d86c1d33ed2f65b931af3adddb697c1466",
+    "v3_exact_version": "1787867256702",
+    "v3_status": "READY",
+    "result": "PASS"
+  },
+  "eligible_future_exact_target": "c3l-dashboard-3-0-g17r-v3-candidate-jpoi50@1787867256702",
+  "promotion_requirements": [
+    "FRESH_MAIN_AND_ACCEPTED_POINTER_READBACK",
+    "FRESH_AUTHORITATIVE_9_OF_9_EVIDENCE",
+    "EXACT_V3_VERSION_READY_READBACK",
+    "EXPLICIT_EXACT_PRODUCTION_PROMOTION_AUTHORIZATION",
+    "LAUNCHER_PROMOTION_WITHOUT_QUERY_OR_HASH_FORWARDING",
+    "INDEPENDENT_HOSTING_AND_SECURITY_READBACK",
+    "ATOMIC_ACCEPTED_PRODUCTION_POINTER_ADVANCE_TO_EXACT_NEW_MAIN_SHA_WITHOUT_WRITING_MAIN",
+    "POST_POINTER_REP03_PASS",
+    "POST_POINTER_SYS01_PASS",
+    "POST_POINTER_SECURITY_AND_OA_PASS",
+    "FAIL_CLOSED_ON_ANY_UNKNOWN_OR_MISMATCH"
+  ],
+  "rule_0": "UNKNOWN_NEVER_EQUALS_PASS"
+}
