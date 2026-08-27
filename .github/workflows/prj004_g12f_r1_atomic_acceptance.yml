@@ -101,7 +101,8 @@ jobs:
           ACCEPT_SHA="$(git rev-parse HEAD)"
           echo "ACCEPT_SHA=${ACCEPT_SHA}" >> "$GITHUB_ENV"
           echo "${ACCEPT_SHA}" > /tmp/g12f-r1/acceptance-sha.txt
-          test -z "$(git status --porcelain)"
+          test -z "$(git diff --name-only)"
+          test -z "$(git diff --cached --name-only)"
           echo "G12F_R1_ACCEPTANCE_SHA=${ACCEPT_SHA}"
 
       - name: Publish exact evidence commit to candidate branch without relying on trigger
