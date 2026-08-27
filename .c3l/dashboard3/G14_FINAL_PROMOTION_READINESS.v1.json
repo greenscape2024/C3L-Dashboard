@@ -1,0 +1,57 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-14",
+  "artifact": "FROZEN_RC_FINAL_PROMOTION_READINESS",
+  "version": "1.0",
+  "status": "PROMOTION_ELIGIBLE",
+  "rc_id": "PRJ004-DASHBOARD3-RC1",
+  "immutable_chain": {
+    "rc_tag": "prj004-dashboard3-rc1-g13-1787841095588",
+    "freeze_sha": "934da49f076abd2e1f8df6da38b3ceff85fe3b11",
+    "source_sha": "b22c2a6d46e0a94bb9bda910c8baa623c5574f3f",
+    "ui_runtime_version": "1787841095588"
+  },
+  "fresh_evidence_lineage": {
+    "parent_source_sha": "b22c2a6d46e0a94bb9bda910c8baa623c5574f3f",
+    "evidence_only_child_sha": "429dbc7d6c5ad434788dcfc4c9237347dd319ae4",
+    "readback_hash": "9a457450a61225d6f58da811db6e6d63716860127905b13c1101a60a94728139",
+    "source_runtime_version": "1787752423174",
+    "fresh_9_of_9": "PASS"
+  },
+  "rollback_reference": {
+    "git_sha": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+    "git_ref": "baseline/prj-004-dashboard-3.0-b7d46b80",
+    "appdeploy": "AppDeploy:v11:1787752423174"
+  },
+  "acceptance": {
+    "rc_tag_freeze_source_runtime_chain": "PASS",
+    "fresh_authority_evidence_lineage": "PASS",
+    "security": "PASS",
+    "fail_closed": "PASS",
+    "non_degradation": "PASS",
+    "lite_full_semantic_parity": "PASS",
+    "organizer_agent_boundary": "PASS",
+    "zero_forbidden_writes": "PASS",
+    "main_unchanged": "PASS"
+  },
+  "tag_signature": {
+    "state": "UNSIGNED",
+    "blocking_under_g14_contract": false,
+    "reason": "Exact annotated-tag object and peeled commit were independently read back; signed tag is not a stated G14 acceptance requirement."
+  },
+  "browser_proofs": {
+    "authority_9_of_9": true,
+    "lite_full_parity": true,
+    "evidence_propagation": true,
+    "oa_boundary": true,
+    "desktop_mobile_no_overflow": true,
+    "fail_closed": true,
+    "direct_authoritative_source_fetches": 0,
+    "forbidden_application_writes": 0
+  },
+  "decision_time": "2026-08-27T17:11:27.367573Z",
+  "workflow_run_id": "33097067914",
+  "merge_performed": false,
+  "production_promotion": false,
+  "main_modified": false
+}
