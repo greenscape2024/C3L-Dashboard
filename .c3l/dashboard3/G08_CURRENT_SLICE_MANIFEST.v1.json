@@ -1,19 +1,20 @@
 {
   "project_id": "PRJ-004",
   "contract_version": "1.0",
-  "slice_id": "G10-UI-COMPONENT-CONTRACT-001",
-  "slice_type": "WIREFRAME_ACCEPTANCE_UI_COMPONENT_CONTRACT",
+  "slice_id": "G11-NONPROD-UI-COMPONENT-IMPLEMENTATION-001",
+  "slice_type": "NONPRODUCTION_UI_COMPONENT_IMPLEMENTATION_CONFORMANCE",
   "baseline_sha": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
   "candidate_sha_source": "GITHUB_SHA",
   "candidate_branch": "prj-004/g08-development-reentry",
-  "candidate_runtime_url": "https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/",
+  "candidate_runtime_url": "https://c3l-dashboard-3-0-g11-ui-candidate-kkx0oi.v2.appdeploy.ai/",
   "promotion_requested": false,
   "changed_scope": [
     "G08 locked-baseline re-entry control artifacts retained",
-    "G09 IA and Lite/Full wireframe formally accepted as design input",
-    "Reusable UI component contract candidate v0.1",
-    "Human-readable G10 component contract review document",
-    "G10 machine validation workflow"
+    "G09 IA and Lite/Full wireframe retained as accepted design input",
+    "G10 UI component contract retained as implementation authority",
+    "Seven G10 components implemented in isolated AppDeploy frontend-only candidate runtime",
+    "Normalized read-only fixture binding with no direct authority fetch or C2 capability",
+    "G11 browser conformance workflow and runtime evidence"
   ],
   "protected_domains_touched": [],
   "required_proofs": {
@@ -26,6 +27,8 @@
     "hostile_input": "REQUIRED_PASS",
     "runtime_9_of_9": "REQUIRED_PASS",
     "security_negatives": "REQUIRED_PASS",
-    "rollback": "REQUIRED_PASS"
+    "rollback": "REQUIRED_PASS",
+    "g10_runtime_conformance": "REQUIRED_PASS",
+    "g11_candidate_browser_suite": "REQUIRED_PASS"
   }
 }
