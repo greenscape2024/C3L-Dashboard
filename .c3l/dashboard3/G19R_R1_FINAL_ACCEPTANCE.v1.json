@@ -1,0 +1,74 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-19R-R1",
+  "status": "PASS_CLOSED",
+  "purpose": "Persistent authority-evidence freshness producer fallback and post-release observation closure",
+  "production_authority": {
+    "main_sha": "0143a02963b3f2dfab7a11ec07eaf4607ba6c0bb",
+    "accepted_production_ref": "authority/prj-004-accepted-production",
+    "accepted_production_sha": "0143a02963b3f2dfab7a11ec07eaf4607ba6c0bb",
+    "launcher_blob": "02e4a4b0964482e17279ec4e67694899cf0cec2d",
+    "production_runtime": "https://c3l-dashboard-3-0-g17r-v3-candidate-jpoi50.v2.appdeploy.ai/",
+    "production_promotion": false
+  },
+  "scheduler_result": {
+    "github_event_schedule": "UNRELIABLE_NOT_PROVEN",
+    "fallback": "SELF_RENEWING_GITHUB_ACTIONS_PRODUCER",
+    "workflow": ".github/workflows/prj004_g19r_r1_self_renewing_producer.yml",
+    "cadence_seconds": 240,
+    "new_secret_required": false,
+    "manual_refresh_used_as_acceptance": false,
+    "ttl_extended_during_r1": false,
+    "bridge_freshness_limit_seconds": 600,
+    "autonomous_multi_generation_proof": true
+  },
+  "network_classifier": {
+    "status": "EXACT_PLATFORM_ALLOWLIST_PROVEN",
+    "origin": "https://api-v2.appdeploy.ai",
+    "method": "POST",
+    "allowed_paths": ["/p", "/logs", "/metrics"],
+    "all_other_non_read_requests": "UNAUTHORIZED_APPLICATION_WRITE",
+    "metrics_timed_diagnostic_run_id": 33136743844,
+    "metrics_timed_diagnostic_artifact_id": 9672435789,
+    "metrics_timed_diagnostic_artifact_sha256": "31eacec8621fe04954bfb9b052b02f796c5edc708d1443e2cd6ceda9b81ee798"
+  },
+  "final_acceptance": {
+    "run_id": 33137211643,
+    "head_sha": "abd241a36d4a8abf0518701ee91058246a10ec7f",
+    "conclusion": "success",
+    "observation": "GREATER_THAN_300_SECONDS",
+    "authority_9_of_9": "PASS",
+    "rep_03": "PASS",
+    "sys_01": "PASS",
+    "security": "PASS",
+    "organizer_agent_boundary": "PASS",
+    "fail_closed_negative_control": "PASS",
+    "exact_platform_post_classifier": "PASS",
+    "zero_unauthorized_application_writes": "PASS",
+    "autonomous_evidence_rotation": "PASS",
+    "main_equals_accepted": "PASS",
+    "zero_production_promotion": "PASS",
+    "artifact_id": 9672601379,
+    "artifact_sha256": "0c800d10652236a0d24b1f5eb226251a070401ea21d17a1bbb741304d29b92b8"
+  },
+  "evidence_readback": {
+    "start_blob": "c96072b9a4776ae39955ea88c4d0c9b2d72b2e43",
+    "start_collected_at": "2026-08-28T02:47:40.331Z",
+    "accepted_end_blob": "4cb27bebbf2e63256a5f4c38fbb89bae767349c9",
+    "accepted_end_collected_at": "2026-08-28T02:57:17.834Z",
+    "accepted_end_collector_run_id": 33137431512,
+    "accepted_end_collector_conclusion": "success",
+    "accepted_end_verified_count": 9,
+    "accepted_end_total_sources": 9,
+    "accepted_end_security_negatives": "PASS",
+    "accepted_end_anonymous_session_denied": true,
+    "accepted_end_c2_denied": true
+  },
+  "closure_rules": {
+    "unknown_not_pass": true,
+    "stale_not_pass": true,
+    "no_ui_runtime_semantic_change": true,
+    "no_new_authority_architecture": true,
+    "no_promotion_candidate_opened": true
+  }
+}
