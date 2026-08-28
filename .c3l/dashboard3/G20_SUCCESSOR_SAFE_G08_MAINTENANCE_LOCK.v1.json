@@ -1,0 +1,65 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-20",
+  "status": "PASS_CLOSED_MAINTENANCE_BY_EXCEPTION",
+  "purpose": "Successor-safe G08 re-entry guard normalization and maintenance lock",
+  "authority": {
+    "accepted_production_ref": "authority/prj-004-accepted-production",
+    "pre_normalization_baseline_sha": "0143a02963b3f2dfab7a11ec07eaf4607ba6c0bb",
+    "maintenance_baseline_sha": "370a2242d89590a3acdd25b6b861983474370ff9",
+    "launcher_blob_sha": "02e4a4b0964482e17279ec4e67694899cf0cec2d",
+    "production_runtime_app_id": "c3l-dashboard-3-0-g17r-v3-candidate-jpoi50",
+    "production_runtime_version": "1787867256702"
+  },
+  "g08_normalization": {
+    "legacy_v1_baseline_sha": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+    "legacy_v1_status": "HISTORICAL_ONLY_NOT_RUNTIME_BASELINE_AUTHORITY",
+    "runtime_baseline_authority": "authority/prj-004-accepted-production",
+    "main_must_equal_accepted": true,
+    "candidate_must_descend_from_accepted": true,
+    "protected_ui_runtime_authority_delta_forbidden": true,
+    "unknown_not_pass": true,
+    "stale_not_pass": true
+  },
+  "proofs": {
+    "premerge_guard_run_id": 33139066771,
+    "premerge_guard_baseline_sha": "0143a02963b3f2dfab7a11ec07eaf4607ba6c0bb",
+    "premerge_guard_conclusion": "success",
+    "successor_slice_run_id": 33139444687,
+    "successor_slice_conclusion": "success",
+    "final_guard_run_id": 33139531124,
+    "final_guard_head_sha": "1a4c4e3d5b7fa51b547cf4790a6722e3bff61152",
+    "final_guard_conclusion": "success",
+    "final_delta_artifact_id": 9673366250,
+    "final_delta_artifact_sha256": "73c3facab60090efa1ea8b13a5f7953ef441b0953a7a926289368f7922ab9e7d",
+    "ui_delta": 0,
+    "runtime_delta": 0,
+    "authority_semantic_delta": 0,
+    "security_semantic_delta": 0,
+    "production_non_degradation": "PASS",
+    "fail_closed_negative_control": "PASS"
+  },
+  "support_merges": {
+    "normalization_pr": 8,
+    "normalization_merge_sha": "2335101e74ddb119d2bbe9c0e21eda8c48453b41",
+    "successor_classifier_fix_pr": 9,
+    "successor_classifier_fix_merge_sha": "370a2242d89590a3acdd25b6b861983474370ff9",
+    "production_promotion": false,
+    "launcher_change": false,
+    "appdeploy_runtime_change": false
+  },
+  "maintenance_mode": {
+    "mode": "MAINTENANCE_BY_EXCEPTION",
+    "default_action": "NO_CHANGE",
+    "open_new_development_slice_only_for": [
+      "confirmed production defect",
+      "security or authority regression",
+      "required compatibility or dependency maintenance",
+      "explicit approved product requirement"
+    ],
+    "all_future_slices_must_descend_from_accepted_production": true,
+    "all_future_slices_require_successor_safe_g08_guard_pass": true,
+    "production_promotion_requires_separate_explicit_gate": true,
+    "routine_redesign_or_scope_expansion": "FORBIDDEN_WITHOUT_EXPLICIT_NEW_GATE"
+  }
+}
