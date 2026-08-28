@@ -3,6 +3,7 @@ name: PRJ-004 G19R Persistent Evidence Scheduler
 on:
   push:
     branches:
+      - "main"
       - "prj-004/g19r-persistent-freshness"
     paths:
       - ".github/workflows/prj004_g19r_persistent_evidence_scheduler.yml"
