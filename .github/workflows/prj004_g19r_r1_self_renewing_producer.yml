@@ -47,16 +47,27 @@ jobs:
       - name: Fail-closed production authority lock
         run: |
           set -euo pipefail
-          git fetch --no-tags origin \
-            +refs/heads/main:refs/remotes/origin/main \
-            +refs/heads/${ACCEPTED_REF}:refs/remotes/origin/${ACCEPTED_REF} \
-            +refs/heads/${EVIDENCE_REF}:refs/remotes/origin/${EVIDENCE_REF}
-          MAIN_SHA="$(git rev-parse refs/remotes/origin/main)"
-          ACCEPTED_SHA="$(git rev-parse refs/remotes/origin/${ACCEPTED_REF})"
-          test "${MAIN_SHA}" = "${ACCEPTED_SHA}"
           if [ "${GITHUB_REF_NAME}" = "main" ]; then
-            test "${MAIN_SHA}" = "${GITHUB_SHA}"
+            MATCH=0
+            for i in $(seq 1 18); do
+              git fetch --no-tags origin \
+                +refs/heads/main:refs/remotes/origin/main \
+                +refs/heads/${ACCEPTED_REF}:refs/remotes/origin/${ACCEPTED_REF} \
+                +refs/heads/${EVIDENCE_REF}:refs/remotes/origin/${EVIDENCE_REF}
+              MAIN_SHA="$(git rev-parse refs/remotes/origin/main)"
+              ACCEPTED_SHA="$(git rev-parse refs/remotes/origin/${ACCEPTED_REF})"
+              if [ "${MAIN_SHA}" = "${GITHUB_SHA}" ] && [ "${ACCEPTED_SHA}" = "${GITHUB_SHA}" ]; then MATCH=1; break; fi
+              sleep 5
+            done
+            test "${MATCH}" = "1"
           else
+            git fetch --no-tags origin \
+              +refs/heads/main:refs/remotes/origin/main \
+              +refs/heads/${ACCEPTED_REF}:refs/remotes/origin/${ACCEPTED_REF} \
+              +refs/heads/${EVIDENCE_REF}:refs/remotes/origin/${EVIDENCE_REF}
+            MAIN_SHA="$(git rev-parse refs/remotes/origin/main)"
+            ACCEPTED_SHA="$(git rev-parse refs/remotes/origin/${ACCEPTED_REF})"
+            test "${MAIN_SHA}" = "${ACCEPTED_SHA}"
             test "${MAIN_SHA}" = "${LOCKED_PRODUCTION_SHA}"
           fi
           test "$(git rev-parse refs/remotes/origin/main:index.html)" = "${LOCKED_LAUNCHER_BLOB}"
