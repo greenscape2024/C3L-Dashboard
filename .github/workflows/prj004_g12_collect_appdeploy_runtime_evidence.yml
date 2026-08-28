@@ -85,3 +85,5 @@ jobs:
           path: /tmp/g12/source-runtime.png
           if-no-files-found: error
           retention-days: 30
+
+# G20-FINAL evidence refresh trigger only; workflow semantics unchanged.
