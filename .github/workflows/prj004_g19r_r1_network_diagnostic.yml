@@ -1,0 +1,56 @@
+name: PRJ-004 G19R-R1 Residual Network Diagnostic
+
+on:
+  push:
+    branches:
+      - "prj-004/g19r-r1-final-observation"
+    paths:
+      - ".github/workflows/prj004_g19r_r1_network_diagnostic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PAGES_URL: https://greenscape2024.github.io/C3L-Dashboard/
+  PROD_URL: https://c3l-dashboard-3-0-g17r-v3-candidate-jpoi50.v2.appdeploy.ai/
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Capture exact non-read requests by phase
+        run: |
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          const assert=(c,m)=>{if(!c)throw new Error(m)};
+          (async()=>{
+            const b=await chromium.launch({headless:true});
+            const all=[];
+            const capture=async(phase,url,fault=false)=>{
+              const ctx=await b.newContext();
+              const p=await ctx.newPage();
+              if(fault) await p.route('**/*',async route=>route.request().url().includes('normalized-runtime')?route.fulfill({status:500,contentType:'application/json',body:'{"error":"g19r_r1_diagnostic"}'}):route.continue());
+              p.on('request',r=>{if(!['GET','HEAD','OPTIONS'].includes(r.method())){let u;try{u=new URL(r.url())}catch{};all.push({phase,method:r.method(),url:r.url(),origin:u?.origin||'',path:u?.pathname||'',resourceType:r.resourceType()})}});
+              await p.goto(url,{waitUntil:'networkidle',timeout:30000});
+              await p.waitForSelector('[data-testid="adapter-state"]',{timeout:30000});
+              if(fault){await p.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: BLOCKED',null,{timeout:30000});assert((await p.getByTestId('state-SYS-01').textContent()||'').trim()==='UNKNOWN','FAULT_SYS01_NOT_UNKNOWN');}
+              await ctx.close();
+            };
+            await capture('pages-normal-1',process.env.PAGES_URL+'?diag=1');
+            await capture('pages-normal-2',process.env.PAGES_URL+'?diag=2');
+            await capture('pages-normal-3',process.env.PAGES_URL+'?diag=3');
+            await capture('pages-hostile',process.env.PAGES_URL+'?next=https://evil.example/#token=bad');
+            await capture('runtime-fault',process.env.PROD_URL,true);
+            await b.close();
+            console.log('G19R_R1_NON_READ_REQUESTS='+JSON.stringify(all));
+            const unique=[...new Map(all.map(x=>[x.method+' '+x.origin+x.path,x])).values()];
+            console.log('G19R_R1_NON_READ_UNIQUE='+JSON.stringify(unique));
+            console.log('G19R_R1_NETWORK_DIAGNOSTIC=PASS');
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
