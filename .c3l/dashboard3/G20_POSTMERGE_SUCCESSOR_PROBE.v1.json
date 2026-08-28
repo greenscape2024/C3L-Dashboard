@@ -1,0 +1,12 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-20",
+  "status": "POSTMERGE_SUCCESSOR_PROBE",
+  "accepted_baseline_sha": "2335101e74ddb119d2bbe9c0e21eda8c48453b41",
+  "expected_ui_delta": 0,
+  "expected_runtime_delta": 0,
+  "expected_authority_semantic_delta": 0,
+  "expected_security_semantic_delta": 0,
+  "promotion_requested": false,
+  "maintenance_by_exception_target": true
+}
