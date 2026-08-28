@@ -1,0 +1,30 @@
+name: PRJ-004 G19R Network Classifier Diagnostic
+
+on:
+  push:
+    branches:
+      - "prj-004/g19r-persistent-freshness"
+    paths:
+      - ".github/workflows/prj004_g19r_network_classifier_diagnostic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PROD_URL: https://c3l-dashboard-3-0-g17r-v3-candidate-jpoi50.v2.appdeploy.ai/
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Capture non-read browser requests
+        run: |
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{const b=await chromium.launch({headless:true});const all=[];const run=async(fault)=>{const p=await b.newPage();if(fault)await p.route('**/*',async route=>route.request().url().includes('normalized-runtime')?route.fulfill({status:500,contentType:'application/json',body:'{"error":"diagnostic"}'}):route.continue());p.on('request',r=>{if(!['GET','HEAD','OPTIONS'].includes(r.method()))all.push({fault,method:r.method(),url:r.url(),resourceType:r.resourceType()})});await p.goto(process.env.PROD_URL,{waitUntil:'networkidle',timeout:30000});await p.waitForSelector('[data-testid="adapter-state"]',{timeout:30000});await p.close()};await run(false);await run(true);await b.close();console.log('G19R_NON_READ_REQUESTS='+JSON.stringify(all));})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
