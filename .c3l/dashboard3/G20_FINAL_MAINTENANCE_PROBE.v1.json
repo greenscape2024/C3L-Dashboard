@@ -1,0 +1,12 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-20",
+  "status": "FINAL_SUCCESSOR_SAFE_MAINTENANCE_PROBE",
+  "accepted_baseline_sha": "370a2242d89590a3acdd25b6b861983474370ff9",
+  "ui_delta": 0,
+  "runtime_delta": 0,
+  "authority_semantic_delta": 0,
+  "security_semantic_delta": 0,
+  "promotion_requested": false,
+  "maintenance_by_exception": true
+}
