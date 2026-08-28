@@ -1,0 +1,33 @@
+{
+  "schema": "PRJ004_G20_FINAL_SUCCESSOR_PROBE.v1",
+  "project": "PRJ-004 — C3L Dashboard 3.0",
+  "gate": "G-PRJ004-20",
+  "purpose": "clean post-fix successor probe for successor-safe G08 re-entry guard",
+  "created_at": "2026-08-28T06:34:00+02:00",
+  "baseline": {
+    "main_sha": "370a2242d89590a3acdd25b6b861983474370ff9",
+    "accepted_production_ref": "authority/prj-004-accepted-production",
+    "accepted_production_sha": "370a2242d89590a3acdd25b6b861983474370ff9",
+    "main_equals_accepted": true
+  },
+  "probe": {
+    "branch": "prj-004/dev/g20-final-postfix-successor-probe",
+    "artifact_class": "governance_evidence_only",
+    "protected_ui_runtime_security_authority_mutation": false,
+    "appdeploy_runtime_mutation": false,
+    "production_promotion_requested": false
+  },
+  "protected_paths": [
+    "index.html",
+    ".c3l/dashboard3/SECURITY_AUTH_CONTRACT.v1.json",
+    ".c3l/dashboard3/AUTH_ADAPTER_INTERFACE.v1.js",
+    ".c3l/dashboard3/SOURCE_AUTHORITY_REGISTRY.v1.json",
+    ".c3l/dashboard3/SOURCE_SCHEMAS.v1.json",
+    ".c3l/dashboard3/RUNTIME_BINDING_STATUS.v1.json",
+    ".c3l/dashboard3/G03_ACCEPTANCE_RULES.v1.json",
+    ".c3l/dashboard3/G06A_PRODUCTION_ENTRYPOINT_CONTRACT.v1.json"
+  ],
+  "expected_guard": "PRJ-004 G08 Successor-Safe Re-entry Guard",
+  "expected_result": "SUCCESS",
+  "status": "PROBE_SUBMITTED"
+}
