@@ -1,0 +1,152 @@
+name: PRJ-004 G19R-R1 Self-Renewing Evidence Producer
+
+on:
+  push:
+    branches:
+      - "main"
+      - "prj-004/g19r-r1-self-renewing-producer-proof"
+    paths:
+      - ".github/workflows/prj004_g19r_r1_self_renewing_producer.yml"
+  workflow_dispatch:
+    inputs:
+      generation:
+        description: "Autonomous producer generation"
+        required: false
+        default: "0"
+      delay_seconds:
+        description: "Delay before this generation collects"
+        required: false
+        default: "240"
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: prj004-g19r-r1-self-renewing-producer-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  ACCEPTED_REF: authority/prj-004-accepted-production
+  EVIDENCE_REF: prj-004/g08-development-reentry
+  EVIDENCE_PATH: .c3l/dashboard3/G12_APPDEPLOY_RUNTIME_EVIDENCE.v1.json
+  G12_WORKFLOW: prj004_g12_collect_appdeploy_runtime_evidence.yml
+  SELF_WORKFLOW: prj004_g19r_r1_self_renewing_producer.yml
+  LOCKED_PRODUCTION_SHA: c7178154b24ac23d69f43e63692066f2854aa5d3
+  LOCKED_LAUNCHER_BLOB: 02e4a4b0964482e17279ec4e67694899cf0cec2d
+
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout producer ref
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fail-closed production authority lock
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin \
+            +refs/heads/main:refs/remotes/origin/main \
+            +refs/heads/${ACCEPTED_REF}:refs/remotes/origin/${ACCEPTED_REF} \
+            +refs/heads/${EVIDENCE_REF}:refs/remotes/origin/${EVIDENCE_REF}
+          MAIN_SHA="$(git rev-parse refs/remotes/origin/main)"
+          ACCEPTED_SHA="$(git rev-parse refs/remotes/origin/${ACCEPTED_REF})"
+          test "${MAIN_SHA}" = "${ACCEPTED_SHA}"
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+            test "${MAIN_SHA}" = "${GITHUB_SHA}"
+          else
+            test "${MAIN_SHA}" = "${LOCKED_PRODUCTION_SHA}"
+          fi
+          test "$(git rev-parse refs/remotes/origin/main:index.html)" = "${LOCKED_LAUNCHER_BLOB}"
+          BEFORE_BLOB="$(git rev-parse refs/remotes/origin/${EVIDENCE_REF}:${EVIDENCE_PATH})"
+          echo "BEFORE_BLOB=${BEFORE_BLOB}" >> "$GITHUB_ENV"
+          echo G19R_R1_PRODUCTION_AUTHORITY_LOCK=PASS
+          echo G19R_R1_LAUNCHER_UNCHANGED=PASS
+
+      - name: Enqueue next autonomous generation on main
+        if: github.ref_name == 'main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          GEN='${{ github.event.inputs.generation }}'
+          GEN="${GEN:-0}"
+          NEXT=$((GEN + 1))
+          gh api --method POST \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/${SELF_WORKFLOW}/dispatches" \
+            -f ref=main \
+            -f "inputs[generation]=${NEXT}" \
+            -f "inputs[delay_seconds]=240"
+          echo "G19R_R1_NEXT_GENERATION=${NEXT}"
+          echo G19R_R1_AUTONOMOUS_SUCCESSOR_ENQUEUED=PASS
+
+      - name: Respect autonomous cadence
+        run: |
+          set -euo pipefail
+          DELAY='${{ github.event.inputs.delay_seconds }}'
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then DELAY=0; fi
+          DELAY="${DELAY:-0}"
+          case "${DELAY}" in ''|*[!0-9]*) exit 1;; esac
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+            test "${DELAY}" -le 240
+          else
+            test "${DELAY}" = "0"
+          fi
+          echo "G19R_R1_DELAY_SECONDS=${DELAY}"
+          sleep "${DELAY}"
+
+      - name: Dispatch accepted G12 collector and require terminal success
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          START="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          gh api --method POST \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/${G12_WORKFLOW}/dispatches" \
+            -f ref="${EVIDENCE_REF}"
+          RUN_ID=""
+          for i in $(seq 1 90); do
+            gh api \
+              "repos/${GITHUB_REPOSITORY}/actions/workflows/${G12_WORKFLOW}/runs?event=workflow_dispatch&branch=${EVIDENCE_REF}&per_page=20" \
+              > /tmp/g12-runs.json
+            RUN_ID="$(jq -r --arg start "${START}" '[.workflow_runs[] | select(.created_at >= $start)][0].id // empty' /tmp/g12-runs.json)"
+            if [ -n "${RUN_ID}" ]; then
+              STATUS="$(jq -r --arg id "${RUN_ID}" '.workflow_runs[] | select((.id|tostring)==$id) | .status' /tmp/g12-runs.json)"
+              if [ "${STATUS}" = "completed" ]; then
+                CONCLUSION="$(jq -r --arg id "${RUN_ID}" '.workflow_runs[] | select((.id|tostring)==$id) | .conclusion' /tmp/g12-runs.json)"
+                test "${CONCLUSION}" = "success"
+                echo "G19R_R1_G12_RUN_ID=${RUN_ID}"
+                break
+              fi
+            fi
+            sleep 5
+          done
+          test -n "${RUN_ID}"
+          STATUS="$(jq -r --arg id "${RUN_ID}" '.workflow_runs[] | select((.id|tostring)==$id) | .status' /tmp/g12-runs.json)"
+          test "${STATUS}" = "completed"
+          echo G19R_R1_G12_COLLECTOR=PASS
+
+      - name: Require evidence SHA rotation and 9-of-9 contract
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "+refs/heads/${EVIDENCE_REF}:refs/remotes/origin/${EVIDENCE_REF}"
+          AFTER_BLOB="$(git rev-parse refs/remotes/origin/${EVIDENCE_REF}:${EVIDENCE_PATH})"
+          test "${AFTER_BLOB}" != "${BEFORE_BLOB}"
+          git show "refs/remotes/origin/${EVIDENCE_REF}:${EVIDENCE_PATH}" > /tmp/g19r-r1-evidence.json
+          test "$(jq -r .bridge_freshness_limit_seconds /tmp/g19r-r1-evidence.json)" = "600"
+          test "$(jq -r .selftest.gate_pass /tmp/g19r-r1-evidence.json)" = "true"
+          test "$(jq -r .selftest.verified_count /tmp/g19r-r1-evidence.json)" = "9"
+          test "$(jq -r .selftest.total_sources /tmp/g19r-r1-evidence.json)" = "9"
+          test "$(jq -r .selftest.schema_pass /tmp/g19r-r1-evidence.json)" = "true"
+          test "$(jq -r .selftest.freshness_pass /tmp/g19r-r1-evidence.json)" = "true"
+          test "$(jq -r .selftest.zero_false_verified /tmp/g19r-r1-evidence.json)" = "true"
+          test "$(jq -r .selftest.anonymous_session_denied /tmp/g19r-r1-evidence.json)" = "true"
+          test "$(jq -r .selftest.c2_denied /tmp/g19r-r1-evidence.json)" = "true"
+          test "$(jq -r .production_promotion /tmp/g19r-r1-evidence.json)" = "false"
+          echo "G19R_R1_EVIDENCE_BEFORE=${BEFORE_BLOB}"
+          echo "G19R_R1_EVIDENCE_AFTER=${AFTER_BLOB}"
+          echo G19R_R1_EVIDENCE_ROTATION=PASS
+          echo G19R_R1_9_OF_9_SECURITY_FAIL_CLOSED=PASS
+          echo G19R_R1_PROMOTION_CANDIDATE=FALSE
