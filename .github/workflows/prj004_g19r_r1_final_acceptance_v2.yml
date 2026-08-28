@@ -1,0 +1,130 @@
+name: PRJ-004 G19R-R1 Final Acceptance v2
+
+on:
+  push:
+    branches:
+      - "prj-004/g19r-r1-final-observation"
+    paths:
+      - ".github/workflows/prj004_g19r_r1_final_acceptance_v2.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  PROD_SHA: 0143a02963b3f2dfab7a11ec07eaf4607ba6c0bb
+  ACCEPTED_REF: authority/prj-004-accepted-production
+  EVIDENCE_REF: prj-004/g08-development-reentry
+  EVIDENCE_PATH: .c3l/dashboard3/G12_APPDEPLOY_RUNTIME_EVIDENCE.v1.json
+  LAUNCHER_BLOB: 02e4a4b0964482e17279ec4e67694899cf0cec2d
+  PAGES_URL: https://greenscape2024.github.io/C3L-Dashboard/
+  PROD_URL: https://c3l-dashboard-3-0-g17r-v3-candidate-jpoi50.v2.appdeploy.ai/
+  PRODUCER_NAME: PRJ-004 G19R-R1 Self-Renewing Evidence Producer
+
+jobs:
+  accept:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout proof branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Exact production and evidence prelock
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin \
+            +refs/heads/main:refs/remotes/origin/main \
+            +refs/heads/${ACCEPTED_REF}:refs/remotes/origin/${ACCEPTED_REF} \
+            +refs/heads/${EVIDENCE_REF}:refs/remotes/origin/${EVIDENCE_REF}
+          test "$(git rev-parse refs/remotes/origin/main)" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${ACCEPTED_REF})" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/main:index.html)" = "${LAUNCHER_BLOB}"
+          START_EVIDENCE_BLOB="$(git rev-parse refs/remotes/origin/${EVIDENCE_REF}:${EVIDENCE_PATH})"
+          git show "refs/remotes/origin/${EVIDENCE_REF}:${EVIDENCE_PATH}" > /tmp/start-evidence.json
+          test "$(jq -r .bridge_freshness_limit_seconds /tmp/start-evidence.json)" = "600"
+          test "$(jq -r .selftest.gate_pass /tmp/start-evidence.json)" = "true"
+          test "$(jq -r .selftest.verified_count /tmp/start-evidence.json)" = "9"
+          test "$(jq -r .selftest.total_sources /tmp/start-evidence.json)" = "9"
+          test "$(jq -r .selftest.schema_pass /tmp/start-evidence.json)" = "true"
+          test "$(jq -r .selftest.freshness_pass /tmp/start-evidence.json)" = "true"
+          test "$(jq -r .selftest.zero_false_verified /tmp/start-evidence.json)" = "true"
+          test "$(jq -r .selftest.anonymous_session_denied /tmp/start-evidence.json)" = "true"
+          test "$(jq -r .selftest.c2_denied /tmp/start-evidence.json)" = "true"
+          test "$(jq -r .production_promotion /tmp/start-evidence.json)" = "false"
+          START_COLLECTED_AT="$(jq -r .collected_at /tmp/start-evidence.json)"
+          WINDOW_START="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          mkdir -p /tmp/g19r-r1-final
+          echo "START_EVIDENCE_BLOB=${START_EVIDENCE_BLOB}" >> "$GITHUB_ENV"
+          echo "START_COLLECTED_AT=${START_COLLECTED_AT}" >> "$GITHUB_ENV"
+          echo "WINDOW_START=${WINDOW_START}" >> "$GITHUB_ENV"
+          echo G19R_R1_V2_PRELOCK=PASS
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Continuous production observation beyond 300 seconds
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const {chromium}=require('playwright');const fs=require('fs');
+          const assert=(c,m)=>{if(!c)throw new Error(m)};const t=async(p,id)=>(await p.getByTestId(id).textContent()||'').trim();
+          (async()=>{const b=await chromium.launch({headless:true});const ctx=await b.newContext();const unauthorized=[];const platform=[];ctx.on('request',r=>{const m=r.method();if(['GET','HEAD','OPTIONS'].includes(m))return;let u;try{u=new URL(r.url())}catch{};const exactPlatform=m==='POST'&&u?.origin==='https://api-v2.appdeploy.ai'&&['/p','/logs','/metrics'].includes(u.pathname);const row={at:new Date().toISOString(),method:m,url:r.url(),origin:u?.origin||'',path:u?.pathname||'',resourceType:r.resourceType()};if(exactPlatform){platform.push(row);return;}unauthorized.push(row)});const p=await ctx.newPage();const samples=[];
+          for(let i=0;i<7;i++){await p.goto(process.env.PAGES_URL+'?g19r_r1_v2='+i+'_'+Date.now(),{waitUntil:'networkidle',timeout:30000});await p.waitForSelector('[data-testid="adapter-state"]',{timeout:30000});const s={at:new Date().toISOString(),url:p.url(),adapter:await t(p,'adapter-state'),authority:await t(p,'authority-count'),freshness:await t(p,'bridge-freshness'),rep03:await t(p,'state-REP-03'),sys01:await t(p,'state-SYS-01'),sec01:await t(p,'state-SEC-01'),boundary:await t(p,'boundary-state'),binding:await t(p,'binding-mode')};samples.push(s);assert(new URL(s.url).origin===new URL(process.env.PROD_URL).origin,'PRODUCTION_TARGET_DRIFT_'+i);assert(s.adapter==='Adapter: PASS','ADAPTER_NOT_PASS_'+i);assert(s.authority==='9 / 9 authorities','AUTHORITY_NOT_9_OF_9_'+i);assert(['Evidence: FRESH','Evidence: AGING'].includes(s.freshness),'EVIDENCE_NOT_FRESH_OR_AGING_'+i);assert(s.rep03==='PASS','REP03_NOT_PASS_'+i);assert(s.sys01==='PASS','SYS01_NOT_PASS_'+i);assert(s.sec01==='PASS','SEC01_NOT_PASS_'+i);assert(s.boundary==='PASS','OA_NOT_PASS_'+i);assert(s.binding==='ACCEPTED_PRODUCTION_POINTER_READ_ONLY','BINDING_DRIFT_'+i);if(i<6)await new Promise(r=>setTimeout(r,60000));}
+          const hostile=await ctx.newPage();await hostile.goto(process.env.PAGES_URL+'?next=https://evil.example/#token=bad',{waitUntil:'networkidle',timeout:30000});await hostile.waitForSelector('[data-testid="adapter-state"]',{timeout:30000});assert(new URL(hostile.url()).origin===new URL(process.env.PROD_URL).origin,'HOSTILE_TARGET');assert(!hostile.url().includes('evil.example')&&!hostile.url().includes('token=bad'),'HOSTILE_FORWARD');await hostile.close();await p.close();await ctx.close();
+          const f=await b.newPage();await f.route('**/*',async route=>route.request().url().includes('normalized-runtime')?route.fulfill({status:500,contentType:'application/json',body:'{"error":"g19r_r1_v2_negative"}'}):route.continue());await f.goto(process.env.PROD_URL,{waitUntil:'networkidle',timeout:30000});await f.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: BLOCKED',null,{timeout:30000});const neg={adapter:await t(f,'adapter-state'),sys01:await t(f,'state-SYS-01'),sec01:await t(f,'state-SEC-01'),boundary:await t(f,'boundary-state')};assert(neg.sys01==='UNKNOWN'&&neg.sec01==='UNKNOWN'&&neg.boundary==='BLOCKED','FAIL_CLOSED_NEGATIVE_CONTROL');await f.close();await b.close();const out={samples,negative_control:neg,exact_appdeploy_platform_posts:platform,unauthorized_application_writes:unauthorized};fs.writeFileSync('/tmp/g19r-r1-final/browser-observation.json',JSON.stringify(out,null,2)+'\n');assert(unauthorized.length===0,'UNAUTHORIZED_APPLICATION_WRITE');console.log('G19R_R1_V2_360S_CONTINUOUS_PRODUCTION=PASS');console.log('G19R_R1_V2_9_OF_9_REP03_SYS01_SECURITY_OA=PASS');console.log('G19R_R1_V2_FAIL_CLOSED=PASS');console.log('G19R_R1_V2_EXACT_PLATFORM_POST_CLASSIFIER=PASS');console.log('G19R_R1_V2_ZERO_UNAUTHORIZED_APPLICATION_WRITES=PASS')})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+
+      - name: Autonomous evidence rotation and final authority lock
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin \
+            +refs/heads/main:refs/remotes/origin/main \
+            +refs/heads/${ACCEPTED_REF}:refs/remotes/origin/${ACCEPTED_REF} \
+            +refs/heads/${EVIDENCE_REF}:refs/remotes/origin/${EVIDENCE_REF}
+          test "$(git rev-parse refs/remotes/origin/main)" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${ACCEPTED_REF})" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/main:index.html)" = "${LAUNCHER_BLOB}"
+          END_EVIDENCE_BLOB="$(git rev-parse refs/remotes/origin/${EVIDENCE_REF}:${EVIDENCE_PATH})"
+          git show "refs/remotes/origin/${EVIDENCE_REF}:${EVIDENCE_PATH}" > /tmp/g19r-r1-final/end-evidence.json
+          END_COLLECTED_AT="$(jq -r .collected_at /tmp/g19r-r1-final/end-evidence.json)"
+          END_COLLECTOR_RUN="$(jq -r .collector.run_id /tmp/g19r-r1-final/end-evidence.json)"
+          test "${END_EVIDENCE_BLOB}" != "${START_EVIDENCE_BLOB}"
+          test "${END_COLLECTED_AT}" != "${START_COLLECTED_AT}"
+          test "$(jq -r .bridge_freshness_limit_seconds /tmp/g19r-r1-final/end-evidence.json)" = "600"
+          test "$(jq -r .selftest.gate_pass /tmp/g19r-r1-final/end-evidence.json)" = "true"
+          test "$(jq -r .selftest.verified_count /tmp/g19r-r1-final/end-evidence.json)" = "9"
+          test "$(jq -r .selftest.total_sources /tmp/g19r-r1-final/end-evidence.json)" = "9"
+          test "$(jq -r .selftest.schema_pass /tmp/g19r-r1-final/end-evidence.json)" = "true"
+          test "$(jq -r .selftest.freshness_pass /tmp/g19r-r1-final/end-evidence.json)" = "true"
+          test "$(jq -r .selftest.zero_false_verified /tmp/g19r-r1-final/end-evidence.json)" = "true"
+          test "$(jq -r .selftest.anonymous_session_denied /tmp/g19r-r1-final/end-evidence.json)" = "true"
+          test "$(jq -r .selftest.c2_denied /tmp/g19r-r1-final/end-evidence.json)" = "true"
+          test "$(jq -r .production_promotion /tmp/g19r-r1-final/end-evidence.json)" = "false"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs?branch=main&event=workflow_dispatch&per_page=50" > /tmp/g19r-r1-final/producer-runs.json
+          TOTAL="$(jq -r --arg n "${PRODUCER_NAME}" '[.workflow_runs[]|select(.name==$n and .event=="workflow_dispatch" and .actor.login=="github-actions[bot]" and .conclusion=="success")]|length' /tmp/g19r-r1-final/producer-runs.json)"
+          WINDOW="$(jq -r --arg n "${PRODUCER_NAME}" --arg s "${WINDOW_START}" '[.workflow_runs[]|select(.name==$n and .event=="workflow_dispatch" and .actor.login=="github-actions[bot]" and .conclusion=="success" and .updated_at >= $s)]|length' /tmp/g19r-r1-final/producer-runs.json)"
+          test "${TOTAL}" -ge 2
+          test "${WINDOW}" -ge 1
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${END_COLLECTOR_RUN}" > /tmp/g19r-r1-final/end-collector-run.json
+          test "$(jq -r .event /tmp/g19r-r1-final/end-collector-run.json)" = "workflow_dispatch"
+          test "$(jq -r .actor.login /tmp/g19r-r1-final/end-collector-run.json)" = "github-actions[bot]"
+          test "$(jq -r .conclusion /tmp/g19r-r1-final/end-collector-run.json)" = "success"
+          printf '{"production_sha":"%s","window_start":"%s","start_evidence_blob":"%s","start_collected_at":"%s","end_evidence_blob":"%s","end_collected_at":"%s","end_collector_run_id":"%s","total_autonomous_success":%s,"window_autonomous_success":%s,"production_promotion":false}\n' "${PROD_SHA}" "${WINDOW_START}" "${START_EVIDENCE_BLOB}" "${START_COLLECTED_AT}" "${END_EVIDENCE_BLOB}" "${END_COLLECTED_AT}" "${END_COLLECTOR_RUN}" "${TOTAL}" "${WINDOW}" > /tmp/g19r-r1-final/acceptance-lineage.json
+          echo G19R_R1_V2_EVIDENCE_ROTATION=PASS
+          echo G19R_R1_V2_AUTONOMOUS_PRODUCER=PASS
+          echo G19R_R1_V2_MAIN_ACCEPTED_LOCK=PASS
+          echo G19R_R1_V2_ZERO_PRODUCTION_PROMOTION=PASS
+
+      - name: Upload final acceptance proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prj004-g19r-r1-final-v2-${{ github.sha }}
+          path: /tmp/g19r-r1-final/
+          if-no-files-found: warn
+          retention-days: 30
