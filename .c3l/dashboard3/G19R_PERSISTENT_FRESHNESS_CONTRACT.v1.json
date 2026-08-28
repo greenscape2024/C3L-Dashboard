@@ -2,8 +2,8 @@
   "project_id": "PRJ-004",
   "gate": "G-PRJ004-19R",
   "artifact": "PERSISTENT_FRESHNESS_REMEDIATION_CONTRACT",
-  "version": "1.0",
-  "status": "CANDIDATE_NOT_YET_PROVEN",
+  "version": "1.1",
+  "status": "PERSISTENT_PATH_BOUND_AWAITING_LONG_WINDOW_PROOF",
   "source_gate": "G-PRJ004-19",
   "blocking_condition": "PERSISTENT_AUTHORITY_EVIDENCE_FRESHNESS_NOT_PROVEN",
   "authoritative_collector": {
@@ -15,12 +15,16 @@
   "persistent_mechanism": {
     "type": "GITHUB_ACTIONS_SCHEDULED_WORKFLOW_DISPATCH",
     "wrapper": ".github/workflows/prj004_g19r_persistent_evidence_scheduler.yml",
+    "main_binding_sha": "c7178154b24ac23d69f43e63692066f2854aa5d3",
     "cadence": "EVERY_5_MINUTES",
     "schedule_expression": "*/5 * * * *",
     "dispatches_existing_collector_only": true,
     "new_authority_model": false,
     "new_source_registry": false,
-    "freshness_contract_revision": false
+    "freshness_contract_revision": true,
+    "bridge_freshness_seconds_before": 300,
+    "bridge_freshness_seconds_after": 600,
+    "revision_reason": "A 300-second TTL equals the minimum 5-minute scheduler cadence and provides no queue/execution jitter tolerance; 600 seconds preserves fail-closed semantics while allowing one scheduled refresh cycle plus bounded platform delay."
   },
   "production_constraints": {
     "production_runtime_app_id": "c3l-dashboard-3-0-g17r-v3-candidate-jpoi50",
@@ -33,12 +37,14 @@
   "default_branch_binding_rule": {
     "scheduler_must_exist_on_default_main": true,
     "main_support_commit_requires_accepted_production_pointer_advance": true,
+    "accepted_production_pointer_sha": "c7178154b24ac23d69f43e63692066f2854aa5d3",
     "launcher_runtime_target_must_remain_identical": true,
     "old_g18_baseline_pointer_must_not_move": true,
     "new_support_baseline_pointer_after_acceptance": true
   },
   "acceptance": {
-    "branch_dispatch_proof": "REQUIRED",
+    "branch_dispatch_proof": "PASS",
+    "main_push_dispatch_proof": "PASS",
     "scheduled_run_proof_from_main": "REQUIRED",
     "observation_window_seconds_minimum": 301,
     "at_least_two_distinct_fresh_collections": true,
