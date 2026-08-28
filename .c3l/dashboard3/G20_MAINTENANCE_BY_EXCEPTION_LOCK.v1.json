@@ -1,0 +1,80 @@
+{
+  "schema": "PRJ004_G20_MAINTENANCE_BY_EXCEPTION_LOCK.v1",
+  "project": "PRJ-004 — C3L Dashboard 3.0",
+  "gate": "G-PRJ004-20",
+  "status": "PASS_CLOSED",
+  "final_operating_state": "MAINTENANCE_BY_EXCEPTION",
+  "locked_at": "2026-08-28T06:42:42+02:00",
+  "authority": {
+    "main_sha": "370a2242d89590a3acdd25b6b861983474370ff9",
+    "accepted_production_ref": "authority/prj-004-accepted-production",
+    "accepted_production_sha": "370a2242d89590a3acdd25b6b861983474370ff9",
+    "main_equals_accepted": true,
+    "independent_postproof_readback": "PASS"
+  },
+  "production": {
+    "runtime_app_id": "c3l-dashboard-3-0-g17r-v3-candidate-jpoi50",
+    "runtime_url": "https://c3l-dashboard-3-0-g17r-v3-candidate-jpoi50.v2.appdeploy.ai/",
+    "runtime_redeploy_in_g20": false,
+    "production_promotion_requested": false,
+    "production_promotion_executed": false
+  },
+  "successor_probe": {
+    "branch": "prj-004/dev/g20-final-postfix-successor-probe",
+    "candidate_sha": "4b1c868d09f5e4fdb3dec5e8d62ae35659f2b144",
+    "workflow": "PRJ-004 G08 Successor-Safe Re-entry Guard",
+    "run_id": 33142270268,
+    "successful_job_id": 98756409489,
+    "result": "SUCCESS",
+    "delta_files": 1,
+    "delta_artifact_only": ".c3l/dashboard3/G20_FINAL_SUCCESSOR_PROBE.v1.json",
+    "protected_ui_runtime_authority_delta": 0,
+    "protected_domain_delta": "NONE"
+  },
+  "proof_matrix": {
+    "accepted_pointer_resolution": "PASS",
+    "main_equals_accepted": "PASS",
+    "baseline_ancestry": "PASS",
+    "launcher_baseline_identity": "PASS",
+    "legacy_g08_v1_historical_only": "PASS",
+    "production_adapter": "PASS",
+    "authorities_9_of_9": "PASS",
+    "rep_03": "PASS",
+    "sys_01": "PASS",
+    "sec_01": "PASS",
+    "organizator_agent_boundary": "PASS",
+    "binding_mode_accepted_production_pointer_read_only": "PASS",
+    "hostile_input_containment": "PASS",
+    "fail_closed_negative_control": "PASS",
+    "unknown_not_false_pass": "PASS",
+    "maintenance_by_exception_compatible": "PASS",
+    "promotion_requested": false
+  },
+  "evidence_refresh": {
+    "reason": "Initial final-probe readback encountered correctly fail-closed STALE G12 bridge evidence; no runtime, authority, security, or classifier regression.",
+    "collector_workflow": "PRJ-004 G12 Collect AppDeploy Runtime Evidence",
+    "collector_run_id": 33142512144,
+    "collector_head_sha": "4b617a154bb907536821e94bcaa45129e17fa807",
+    "collected_at": "2026-08-28T04:41:29.154Z",
+    "bridge_freshness_limit_seconds": 600,
+    "verified_count": 9,
+    "total_sources": 9,
+    "schema_pass": true,
+    "freshness_pass": true,
+    "security_negatives_pass": true,
+    "production_promotion": false,
+    "refresh_trigger": "comment-only workflow trigger on evidence branch; collector semantics unchanged"
+  },
+  "incident_closure": {
+    "g20_01_classifier_normalization_fix": "CLOSED",
+    "postfix_successor_probe": "PASS",
+    "remaining_blockers": []
+  },
+  "lock_policy": {
+    "change_mode": "MAINTENANCE_BY_EXCEPTION",
+    "default_action": "NO_CHANGE",
+    "reentry_requires": "successor-safe G08 guard and current accepted-production authority",
+    "production_change_requires_explicit_gate": true,
+    "fail_closed": true
+  }
+}
