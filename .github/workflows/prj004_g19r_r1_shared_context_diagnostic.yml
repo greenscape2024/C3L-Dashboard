@@ -1,0 +1,29 @@
+name: PRJ-004 G19R-R1 Shared-Context Network Diagnostic
+
+on:
+  push:
+    branches:
+      - "prj-004/g19r-r1-final-observation"
+    paths:
+      - ".github/workflows/prj004_g19r_r1_shared_context_diagnostic.yml"
+
+permissions:
+  contents: read
+
+env:
+  PAGES_URL: https://greenscape2024.github.io/C3L-Dashboard/
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Reproduce shared-context request lifecycle
+        run: |
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{const b=await chromium.launch({headless:true});const ctx=await b.newContext();const all=[];let phase='init';ctx.on('request',r=>{if(!['GET','HEAD','OPTIONS'].includes(r.method())){let u;try{u=new URL(r.url())}catch{};all.push({phase,method:r.method(),url:r.url(),origin:u?.origin||'',path:u?.pathname||'',resourceType:r.resourceType()})}});const p=await ctx.newPage();for(let i=0;i<20;i++){phase='normal-'+i;await p.goto(process.env.PAGES_URL+'?diag_shared='+i+'_'+Date.now(),{waitUntil:'networkidle',timeout:30000});await p.waitForSelector('[data-testid="adapter-state"]',{timeout:30000});}phase='hostile';const h=await ctx.newPage();await h.goto(process.env.PAGES_URL+'?next=https://evil.example/#token=bad',{waitUntil:'networkidle',timeout:30000});await h.waitForSelector('[data-testid="adapter-state"]',{timeout:30000});phase='settle';await new Promise(r=>setTimeout(r,15000));await ctx.close();await b.close();console.log('G19R_R1_SHARED_NON_READ='+JSON.stringify(all));const unique=[...new Map(all.map(x=>[x.method+' '+x.origin+x.path,x])).values()];console.log('G19R_R1_SHARED_NON_READ_UNIQUE='+JSON.stringify(unique));console.log('G19R_R1_SHARED_CONTEXT_DIAGNOSTIC=PASS')})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
