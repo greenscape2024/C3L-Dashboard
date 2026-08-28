@@ -21,9 +21,18 @@ jobs:
         run: |
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
-      - name: Reproduce shared-context request lifecycle
+      - name: Reproduce time-equivalent shared-context lifecycle beyond 300 seconds
         run: |
+          set -euo pipefail
+          mkdir -p /tmp/g19r-r1-timed
           node <<'NODE'
-          const {chromium}=require('playwright');
-          (async()=>{const b=await chromium.launch({headless:true});const ctx=await b.newContext();const all=[];let phase='init';ctx.on('request',r=>{if(!['GET','HEAD','OPTIONS'].includes(r.method())){let u;try{u=new URL(r.url())}catch{};all.push({phase,method:r.method(),url:r.url(),origin:u?.origin||'',path:u?.pathname||'',resourceType:r.resourceType()})}});const p=await ctx.newPage();for(let i=0;i<20;i++){phase='normal-'+i;await p.goto(process.env.PAGES_URL+'?diag_shared='+i+'_'+Date.now(),{waitUntil:'networkidle',timeout:30000});await p.waitForSelector('[data-testid="adapter-state"]',{timeout:30000});}phase='hostile';const h=await ctx.newPage();await h.goto(process.env.PAGES_URL+'?next=https://evil.example/#token=bad',{waitUntil:'networkidle',timeout:30000});await h.waitForSelector('[data-testid="adapter-state"]',{timeout:30000});phase='settle';await new Promise(r=>setTimeout(r,15000));await ctx.close();await b.close();console.log('G19R_R1_SHARED_NON_READ='+JSON.stringify(all));const unique=[...new Map(all.map(x=>[x.method+' '+x.origin+x.path,x])).values()];console.log('G19R_R1_SHARED_NON_READ_UNIQUE='+JSON.stringify(unique));console.log('G19R_R1_SHARED_CONTEXT_DIAGNOSTIC=PASS')})().catch(e=>{console.error(e);process.exit(1)});
+          const {chromium}=require('playwright');const fs=require('fs');
+          (async()=>{const b=await chromium.launch({headless:true});const ctx=await b.newContext();const all=[];let phase='init';ctx.on('request',r=>{if(!['GET','HEAD','OPTIONS'].includes(r.method())){let u;try{u=new URL(r.url())}catch{};all.push({at:new Date().toISOString(),phase,method:r.method(),url:r.url(),origin:u?.origin||'',path:u?.pathname||'',resourceType:r.resourceType()})}});const p=await ctx.newPage();const samples=[];for(let i=0;i<7;i++){phase='normal-'+i;await p.goto(process.env.PAGES_URL+'?diag_timed='+i+'_'+Date.now(),{waitUntil:'networkidle',timeout:30000});await p.waitForSelector('[data-testid="adapter-state"]',{timeout:30000});samples.push({at:new Date().toISOString(),adapter:(await p.getByTestId('adapter-state').textContent()||'').trim(),authority:(await p.getByTestId('authority-count').textContent()||'').trim(),freshness:(await p.getByTestId('bridge-freshness').textContent()||'').trim()});if(i<6)await new Promise(r=>setTimeout(r,60000));}phase='hostile';const h=await ctx.newPage();await h.goto(process.env.PAGES_URL+'?next=https://evil.example/#token=bad',{waitUntil:'networkidle',timeout:30000});await h.waitForSelector('[data-testid="adapter-state"]',{timeout:30000});phase='settle';await new Promise(r=>setTimeout(r,15000));await ctx.close();await b.close();const unique=[...new Map(all.map(x=>[x.method+' '+x.origin+x.path,x])).values()];const allowed=x=>x.method==='POST'&&x.origin==='https://api-v2.appdeploy.ai'&&['/p','/logs'].includes(x.path);const unknown=all.filter(x=>!allowed(x));const out={samples,all_non_read:all,unique_non_read:unique,unknown_non_read:unknown};fs.writeFileSync('/tmp/g19r-r1-timed/network-diagnostic.json',JSON.stringify(out,null,2)+'\n');console.log('G19R_R1_TIMED_NON_READ_UNIQUE='+JSON.stringify(unique));console.log('G19R_R1_TIMED_UNKNOWN_NON_READ='+JSON.stringify(unknown));console.log('G19R_R1_TIMED_SHARED_CONTEXT_DIAGNOSTIC=PASS')})().catch(e=>{console.error(e);process.exit(1)});
           NODE
+      - name: Upload timed diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prj004-g19r-r1-timed-network-diagnostic
+          path: /tmp/g19r-r1-timed/network-diagnostic.json
+          if-no-files-found: error
