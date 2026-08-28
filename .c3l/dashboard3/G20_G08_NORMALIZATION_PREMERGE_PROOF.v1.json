@@ -1,0 +1,19 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-20",
+  "status": "PREMERGE_PROOF_PASS",
+  "baseline_sha": "0143a02963b3f2dfab7a11ec07eaf4607ba6c0bb",
+  "accepted_production_ref": "authority/prj-004-accepted-production",
+  "guard_candidate_sha": "85c3ebeefb4dee3760047b232dcbb1db80c97bd1",
+  "guard_run_id": 33139066771,
+  "guard_conclusion": "success",
+  "delta": {
+    "workflow_only_before_evidence_append": true,
+    "ui_delta": 0,
+    "runtime_delta": 0,
+    "authority_semantic_delta": 0,
+    "security_semantic_delta": 0,
+    "production_promotion": false
+  },
+  "legacy_g08_v1": "HISTORICAL_ONLY_NOT_RUNTIME_BASELINE_AUTHORITY"
+}
