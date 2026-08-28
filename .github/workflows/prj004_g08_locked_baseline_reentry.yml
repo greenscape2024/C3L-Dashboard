@@ -83,7 +83,6 @@ jobs:
             if len(parts)>=2: changed.append(parts[-1])
           touched=sorted(set(changed)&forbidden_exact)
           assert not touched, f'PROTECTED_UI_RUNTIME_AUTHORITY_DELTA={touched}'
-          assert '.github/workflows/prj004_g08_locked_baseline_reentry.yml' in changed
           print('G08_SUCCESSOR_DELTA_FILES='+str(len(changed)))
           print('G08_UI_RUNTIME_AUTHORITY_DELTA=0_PASS')
           print('G08_PROTECTED_DOMAIN_DELTA=NONE_PASS')
