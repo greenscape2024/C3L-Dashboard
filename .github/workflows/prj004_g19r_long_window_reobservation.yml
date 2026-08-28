@@ -1,0 +1,110 @@
+name: PRJ-004 G19R Long Window Re-observation
+
+on:
+  push:
+    branches:
+      - "prj-004/g19r-persistent-freshness"
+    paths:
+      - ".github/workflows/prj004_g19r_long_window_reobservation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  PROD_SHA: c7178154b24ac23d69f43e63692066f2854aa5d3
+  ACCEPTED_REF: authority/prj-004-accepted-production
+  EVIDENCE_REF: prj-004/g08-development-reentry
+  EVIDENCE_PATH: .c3l/dashboard3/G12_APPDEPLOY_RUNTIME_EVIDENCE.v1.json
+  LAUNCHER_BLOB: 02e4a4b0964482e17279ec4e67694899cf0cec2d
+  PAGES_URL: https://greenscape2024.github.io/C3L-Dashboard/
+  PROD_URL: https://c3l-dashboard-3-0-g17r-v3-candidate-jpoi50.v2.appdeploy.ai/
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout evidence branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pre-observation authority and evidence lock
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin \
+            +refs/heads/main:refs/remotes/origin/main \
+            +refs/heads/${ACCEPTED_REF}:refs/remotes/origin/${ACCEPTED_REF} \
+            +refs/heads/${EVIDENCE_REF}:refs/remotes/origin/${EVIDENCE_REF}
+          test "$(git rev-parse refs/remotes/origin/main)" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${ACCEPTED_REF})" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/main:index.html)" = "${LAUNCHER_BLOB}"
+          START_EVIDENCE_BLOB="$(git rev-parse refs/remotes/origin/${EVIDENCE_REF}:${EVIDENCE_PATH})"
+          START_COLLECTED_AT="$(git show refs/remotes/origin/${EVIDENCE_REF}:${EVIDENCE_PATH} | jq -r .collected_at)"
+          START_TTL="$(git show refs/remotes/origin/${EVIDENCE_REF}:${EVIDENCE_PATH} | jq -r .bridge_freshness_limit_seconds)"
+          test "${START_TTL}" = "600"
+          WINDOW_START="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "START_EVIDENCE_BLOB=${START_EVIDENCE_BLOB}" >> "$GITHUB_ENV"
+          echo "START_COLLECTED_AT=${START_COLLECTED_AT}" >> "$GITHUB_ENV"
+          echo "WINDOW_START=${WINDOW_START}" >> "$GITHUB_ENV"
+          echo G19R_PRELOCK=PASS
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Observe production continuously beyond 300 seconds
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/g19r
+          node <<'NODE'
+          const {chromium}=require('playwright');const fs=require('fs');
+          const assert=(c,m)=>{if(!c)throw new Error(m)};const t=async(p,id)=>(await p.getByTestId(id).textContent()||'').trim();
+          (async()=>{const b=await chromium.launch({headless:true});const ctx=await b.newContext();const writes=[];ctx.on('request',r=>{const u=r.url(),m=r.method();let p;try{p=new URL(u)}catch{};if(m==='POST'&&p?.origin==='https://api-v2.appdeploy.ai'&&p?.pathname==='/p')return;if(!['GET','HEAD','OPTIONS'].includes(m))writes.push(m+' '+u)});const p=await ctx.newPage();const samples=[];
+          for(let i=0;i<7;i++){await p.goto(process.env.PAGES_URL+'?g19r_obs='+Date.now(),{waitUntil:'networkidle',timeout:30000});await p.waitForSelector('[data-testid="adapter-state"]',{timeout:30000});const s={at:new Date().toISOString(),url:p.url(),adapter:await t(p,'adapter-state'),authority:await t(p,'authority-count'),freshness:await t(p,'bridge-freshness'),rep03:await t(p,'state-REP-03'),sys01:await t(p,'state-SYS-01'),sec01:await t(p,'state-SEC-01'),boundary:await t(p,'boundary-state'),binding:await t(p,'binding-mode')};samples.push(s);assert(new URL(s.url).origin===new URL(process.env.PROD_URL).origin,'PRODUCTION_TARGET_DRIFT');assert(s.adapter==='Adapter: PASS','ADAPTER_NOT_PASS_'+i);assert(s.authority==='9 / 9 authorities','AUTHORITY_NOT_9_OF_9_'+i);assert(['Evidence: FRESH','Evidence: AGING'].includes(s.freshness),'EVIDENCE_NOT_FRESH_OR_AGING_'+i);assert(s.rep03==='PASS','REP03_NOT_PASS_'+i);assert(s.sys01==='PASS','SYS01_NOT_PASS_'+i);assert(s.sec01==='PASS','SEC01_NOT_PASS_'+i);assert(s.boundary==='PASS','OA_NOT_PASS_'+i);assert(s.binding==='ACCEPTED_PRODUCTION_POINTER_READ_ONLY','BINDING_DRIFT_'+i);if(i<6)await new Promise(r=>setTimeout(r,60000));}
+          const hostile=await ctx.newPage();await hostile.goto(process.env.PAGES_URL+'?next=https://evil.example/#token=bad',{waitUntil:'networkidle',timeout:30000});await hostile.waitForSelector('[data-testid="adapter-state"]',{timeout:30000});assert(new URL(hostile.url()).origin===new URL(process.env.PROD_URL).origin,'HOSTILE_TARGET');assert(!hostile.url().includes('evil.example')&&!hostile.url().includes('token=bad'),'HOSTILE_FORWARD');await hostile.close();await p.close();await ctx.close();
+          const f=await b.newPage();await f.route('**/*',async route=>route.request().url().includes('normalized-runtime')?route.fulfill({status:500,contentType:'application/json',body:'{"error":"g19r_negative_control"}'}):route.continue());await f.goto(process.env.PROD_URL,{waitUntil:'networkidle',timeout:30000});await f.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: BLOCKED',null,{timeout:30000});const neg={adapter:await t(f,'adapter-state'),sys01:await t(f,'state-SYS-01'),sec01:await t(f,'state-SEC-01'),boundary:await t(f,'boundary-state')};assert(neg.sys01==='UNKNOWN'&&neg.sec01==='UNKNOWN'&&neg.boundary==='BLOCKED','FAIL_CLOSED_NEGATIVE_CONTROL');await f.close();await b.close();assert(writes.length===0,'UNAUTHORIZED_APPLICATION_WRITE');fs.writeFileSync('/tmp/g19r/browser-observation.json',JSON.stringify({samples,negative_control:neg,unauthorized_application_writes:writes.length},null,2)+'\n');console.log('G19R_360S_CONTINUOUS_PRODUCTION=PASS');console.log('G19R_9_OF_9_REP03_SYS01_SECURITY_OA=PASS');console.log('G19R_FAIL_CLOSED_NEGATIVE_CONTROL=PASS');console.log('G19R_ZERO_UNAUTHORIZED_APPLICATION_WRITES=PASS')})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+
+      - name: Prove scheduled refresh rotated evidence during window
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin \
+            +refs/heads/main:refs/remotes/origin/main \
+            +refs/heads/${ACCEPTED_REF}:refs/remotes/origin/${ACCEPTED_REF} \
+            +refs/heads/${EVIDENCE_REF}:refs/remotes/origin/${EVIDENCE_REF}
+          test "$(git rev-parse refs/remotes/origin/main)" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${ACCEPTED_REF})" = "${PROD_SHA}"
+          test "$(git rev-parse refs/remotes/origin/main:index.html)" = "${LAUNCHER_BLOB}"
+          END_EVIDENCE_BLOB="$(git rev-parse refs/remotes/origin/${EVIDENCE_REF}:${EVIDENCE_PATH})"
+          END_COLLECTED_AT="$(git show refs/remotes/origin/${EVIDENCE_REF}:${EVIDENCE_PATH} | jq -r .collected_at)"
+          END_TTL="$(git show refs/remotes/origin/${EVIDENCE_REF}:${EVIDENCE_PATH} | jq -r .bridge_freshness_limit_seconds)"
+          END_COLLECTOR_RUN="$(git show refs/remotes/origin/${EVIDENCE_REF}:${EVIDENCE_PATH} | jq -r .collector.run_id)"
+          test "${END_TTL}" = "600"
+          test "${END_EVIDENCE_BLOB}" != "${START_EVIDENCE_BLOB}"
+          test "${END_COLLECTED_AT}" != "${START_COLLECTED_AT}"
+          gh api -X GET "repos/${GITHUB_REPOSITORY}/actions/runs?event=schedule&branch=main&per_page=20" > /tmp/g19r/scheduled-runs.json
+          SCHEDULED_RUN_ID="$(jq -r --arg start "${WINDOW_START}" '[.workflow_runs[] | select(.name=="PRJ-004 G19R Persistent Evidence Scheduler" and .event=="schedule" and .created_at >= $start and .conclusion=="success")][0].id // empty' /tmp/g19r/scheduled-runs.json)"
+          test -n "${SCHEDULED_RUN_ID}"
+          gh api -X GET "repos/${GITHUB_REPOSITORY}/actions/runs/${END_COLLECTOR_RUN}" > /tmp/g19r/end-collector-run.json
+          test "$(jq -r .event /tmp/g19r/end-collector-run.json)" = "workflow_dispatch"
+          END_COLLECTOR_CREATED="$(jq -r .created_at /tmp/g19r/end-collector-run.json)"
+          SCHEDULED_CREATED="$(jq -r --arg id "${SCHEDULED_RUN_ID}" '.workflow_runs[] | select((.id|tostring)==$id) | .created_at' /tmp/g19r/scheduled-runs.json)"
+          test "${END_COLLECTOR_CREATED}" \> "${SCHEDULED_CREATED}" || test "${END_COLLECTOR_CREATED}" = "${SCHEDULED_CREATED}"
+          printf '{"window_start":"%s","start_evidence_blob":"%s","start_collected_at":"%s","end_evidence_blob":"%s","end_collected_at":"%s","scheduled_run_id":"%s","end_collector_run_id":"%s"}\n' "${WINDOW_START}" "${START_EVIDENCE_BLOB}" "${START_COLLECTED_AT}" "${END_EVIDENCE_BLOB}" "${END_COLLECTED_AT}" "${SCHEDULED_RUN_ID}" "${END_COLLECTOR_RUN}" > /tmp/g19r/freshness-lineage.json
+          echo G19R_SCHEDULE_EVENT=PASS
+          echo G19R_EVIDENCE_ROTATED_DURING_WINDOW=PASS
+          echo G19R_FINAL_MAIN_ACCEPTED_LOCK=PASS
+          echo G19R_LAUNCHER_BLOB_UNCHANGED=PASS
+
+      - name: Upload G19R proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: prj004-g19r-long-window-${{ github.sha }}
+          path: /tmp/g19r/
+          if-no-files-found: error
+          retention-days: 30
