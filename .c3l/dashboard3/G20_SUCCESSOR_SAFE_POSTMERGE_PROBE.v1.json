@@ -1,0 +1,12 @@
+{
+  "gate": "G-PRJ004-20",
+  "purpose": "fresh_postmerge_successor_probe",
+  "baseline_sha": "370a2242d89590a3acdd25b6b861983474370ff9",
+  "accepted_production_sha": "370a2242d89590a3acdd25b6b861983474370ff9",
+  "scope": "governance_only",
+  "production_promotion": false,
+  "runtime_mutation": false,
+  "ui_mutation": false,
+  "authority_semantic_change": false,
+  "expected_guard": "G08_SUCCESSOR_SAFE_REENTRY_GUARD=PASS"
+}
