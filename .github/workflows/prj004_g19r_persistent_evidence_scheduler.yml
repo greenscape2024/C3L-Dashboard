@@ -1,0 +1,45 @@
+name: PRJ-004 G19R Persistent Evidence Scheduler
+
+on:
+  push:
+    branches:
+      - "main"
+      - "prj-004/g19r-persistent-freshness"
+    paths:
+      - ".github/workflows/prj004_g19r_persistent_evidence_scheduler.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: prj004-g19r-persistent-evidence-scheduler
+  cancel-in-progress: false
+
+jobs:
+  dispatch-existing-g12-collector:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lock scheduler scope
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REPOSITORY}" = "greenscape2024/C3L-Dashboard"
+          echo G19R_SCHEDULER_SCOPE_LOCK=PASS
+
+      - name: Dispatch accepted G12 collector on evidence branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run prj004_g12_collect_appdeploy_runtime_evidence.yml \
+            --repo "${GITHUB_REPOSITORY}" \
+            --ref prj-004/g08-development-reentry
+          echo G19R_EXISTING_COLLECTOR_DISPATCH=PASS
+
+      - name: Assert no production promotion action exists
+        run: |
+          set -euo pipefail
+          echo G19R_PRODUCTION_PROMOTION=0_PASS

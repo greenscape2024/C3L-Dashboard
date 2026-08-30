@@ -1,0 +1,35 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-15",
+  "artifact": "EXPLICIT_PRODUCTION_PROMOTION_AUTHORIZATION",
+  "version": "1.0",
+  "status": "AUTHORIZED",
+  "scope": "PRJ004-DASHBOARD3-RC1_ONLY",
+  "rc_id": "PRJ004-DASHBOARD3-RC1",
+  "rc_tag": "prj004-dashboard3-rc1-g13-1787841095588",
+  "freeze_sha": "934da49f076abd2e1f8df6da38b3ceff85fe3b11",
+  "source_sha": "b22c2a6d46e0a94bb9bda910c8baa623c5574f3f",
+  "ui_runtime_version": "1787841095588",
+  "production_runtime_target": "https://c3l-dashboard-3-0-g12-runtime-adapter-candidate-snhzg1.v2.appdeploy.ai/",
+  "pre_promotion_main_required": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+  "rollback_reference": {
+    "git_sha": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+    "git_ref": "baseline/prj-004-dashboard-3.0-b7d46b80",
+    "launcher_blob_sha": "72a271328d0ead519c853a2842d6d565463ca994",
+    "appdeploy": "AppDeploy:v11:1787752423174"
+  },
+  "allowed_promotion_delta": [
+    "frozen RC1 tree",
+    "fixed production launcher binding to exact frozen RC1 runtime",
+    "G15 authorization/validation evidence"
+  ],
+  "forbidden": [
+    "unrelated feature changes",
+    "dynamic redirect targets",
+    "query/hash forwarding",
+    "client-side credentials",
+    "runtime code changes outside frozen RC1",
+    "C2 controls introduced by Dashboard UI"
+  ],
+  "fail_closed": true
+}

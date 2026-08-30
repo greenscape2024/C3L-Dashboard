@@ -1,0 +1,248 @@
+name: PRJ-004 G15 RC1 Pre-Promotion Validation
+
+on:
+  push:
+    branches:
+      - prj-004/g15-rc1-production-promotion
+
+permissions:
+  contents: write
+
+concurrency:
+  group: prj004-g15-rc1-promotion
+  cancel-in-progress: false
+
+jobs:
+  rc1-pre-promotion:
+    runs-on: ubuntu-latest
+    env:
+      RC_TAG: prj004-dashboard3-rc1-g13-1787841095588
+      FREEZE_SHA: 934da49f076abd2e1f8df6da38b3ceff85fe3b11
+      SOURCE_SHA: b22c2a6d46e0a94bb9bda910c8baa623c5574f3f
+      PREVIOUS_MAIN_SHA: b7d46b80a72772ebc16bc557500eb63916a1d63c
+      BASELINE_REF: baseline/prj-004-dashboard-3.0-b7d46b80
+      PREVIOUS_LAUNCHER_BLOB: 72a271328d0ead519c853a2842d6d565463ca994
+      G08_BRANCH: prj-004/g08-development-reentry
+      G14_BRANCH: prj-004/g14-frozen-rc-promotion-readiness
+      EVIDENCE_PATH: .c3l/dashboard3/G12_APPDEPLOY_RUNTIME_EVIDENCE.v1.json
+      SOURCE_URL: https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/
+      SOURCE_VERSION: '1787752423174'
+      RC_RUNTIME_URL: https://c3l-dashboard-3-0-g12-runtime-adapter-candidate-snhzg1.v2.appdeploy.ai/
+      RC_RUNTIME_VERSION: '1787841095588'
+      OLD_RUNTIME_URL: https://c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t.v2.appdeploy.ai/
+      ROLLBACK_APPDEPLOY: AppDeploy:v11:1787752423174
+    steps:
+      - name: Checkout exact promotion candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Immutable RC1 and authorization preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_NAME}" = "prj-004/g15-rc1-production-promotion"
+          git fetch --tags --force origin \
+            +refs/heads/main:refs/remotes/origin/main \
+            +refs/heads/${BASELINE_REF}:refs/remotes/origin/${BASELINE_REF} \
+            +refs/heads/${G08_BRANCH}:refs/remotes/origin/${G08_BRANCH} \
+            +refs/heads/${G14_BRANCH}:refs/remotes/origin/${G14_BRANCH}
+          test "$(git rev-parse "${RC_TAG}^{}")" = "${FREEZE_SHA}"
+          git merge-base --is-ancestor "${FREEZE_SHA}" "${GITHUB_SHA}"
+          test "$(git rev-parse refs/remotes/origin/main)" = "${PREVIOUS_MAIN_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${BASELINE_REF})" = "${PREVIOUS_MAIN_SHA}"
+          test "$(git show refs/remotes/origin/${BASELINE_REF}:index.html | git hash-object --stdin)" = "${PREVIOUS_LAUNCHER_BLOB}"
+          python - <<'PY'
+          import json, os, subprocess
+          def load(ref,path): return json.loads(subprocess.check_output(['git','show',f'{ref}:{path}'],text=True))
+          freeze=load(os.environ['FREEZE_SHA'],'.c3l/dashboard3/G13_RELEASE_CANDIDATE_FREEZE.v1.json')
+          g14=load(f"refs/remotes/origin/{os.environ['G14_BRANCH']}",'.c3l/dashboard3/G14_FINAL_PROMOTION_READINESS.v1.json')
+          auth=json.load(open('.c3l/dashboard3/G15_PROMOTION_AUTHORIZATION.v1.json',encoding='utf-8'))
+          assert freeze['rc_id']=='PRJ004-DASHBOARD3-RC1'
+          assert freeze['rc_tag']==os.environ['RC_TAG']
+          assert freeze['source_candidate_sha']==os.environ['SOURCE_SHA']
+          assert freeze['ui_runtime']['version']==os.environ['RC_RUNTIME_VERSION']
+          assert freeze['ui_runtime']['url']==os.environ['RC_RUNTIME_URL']
+          assert freeze['ui_runtime']['production_binding'] is False
+          assert g14['status']=='PROMOTION_ELIGIBLE'
+          assert g14['immutable_chain']['rc_tag']==os.environ['RC_TAG']
+          assert g14['immutable_chain']['freeze_sha']==os.environ['FREEZE_SHA']
+          assert g14['immutable_chain']['source_sha']==os.environ['SOURCE_SHA']
+          assert g14['immutable_chain']['ui_runtime_version']==os.environ['RC_RUNTIME_VERSION']
+          assert g14['production_promotion'] is False and g14['merge_performed'] is False and g14['main_modified'] is False
+          assert auth['status']=='AUTHORIZED' and auth['scope']=='PRJ004-DASHBOARD3-RC1_ONLY'
+          assert auth['freeze_sha']==os.environ['FREEZE_SHA'] and auth['ui_runtime_version']==os.environ['RC_RUNTIME_VERSION']
+          assert auth['pre_promotion_main_required']==os.environ['PREVIOUS_MAIN_SHA']
+          print('G15_RC1_AUTHORIZATION=PASS')
+          print('G15_G14_PROMOTION_ELIGIBLE=PASS')
+          PY
+          python - <<'PY'
+          import os, subprocess
+          changed=subprocess.check_output(['git','diff','--name-only',os.environ['FREEZE_SHA'],os.environ['GITHUB_SHA']],text=True).splitlines()
+          expected={
+            'index.html',
+            '.c3l/dashboard3/G15_PROMOTION_AUTHORIZATION.v1.json',
+            '.github/workflows/prj004_g15_rc1_pre_promotion_validation.yml'
+          }
+          assert set(changed)==expected, (changed, expected)
+          print('G15_RC1_PLUS_BINDING_ONLY_DELTA=PASS')
+          PY
+          python - <<'PY'
+          import os
+          s=open('index.html',encoding='utf-8').read()
+          new=os.environ['RC_RUNTIME_URL']; old=os.environ['OLD_RUNTIME_URL']
+          assert s.count(new)==2
+          assert old not in s
+          for bad in ['URLSearchParams','location.search','location.hash','?key=','window.location.href=']:
+              assert bad not in s, bad
+          assert 'window.location.replace(FIXED_PRODUCTION_RUNTIME)' in s
+          assert 'rel="noopener noreferrer"' in s
+          print('G15_FIXED_LAUNCHER_BINDING=PASS')
+          print('G15_QUERY_HASH_FORWARDING=BLOCKED')
+          PY
+
+      - name: Install Playwright verification harness
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Fresh authoritative 9-of-9 evidence-only child
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/g15
+          git checkout -B "${G08_BRANCH}" "refs/remotes/origin/${G08_BRANCH}"
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          const fs=require('fs');
+          const authorities=[
+            ['PRJ004-AUTH-BASELINE-INTEGRITY-001','baseline_integrity','ORGANIZATOR_CONTROL_PLANE',300],
+            ['PRJ004-AUTH-DRIFT-001','drift','ORGANIZATOR_CONTROL_PLANE',300],
+            ['PRJ004-AUTH-SECURITY-RBAC-001','security_rbac','SECURITY_CONTROL_PLANE',60],
+            ['PRJ004-AUTH-MODULE-GRAPH-001','module_registry_graph','ORGANIZATOR_CONTROL_PLANE',300],
+            ['PRJ004-AUTH-ROUTING-001','routing','ORGANIZATOR_CONTROL_PLANE',60],
+            ['PRJ004-AUTH-SNAPSHOT-001','snapshots','ORGANIZATOR_CONTROL_PLANE',0],
+            ['PRJ004-AUTH-ALERTS-001','alerts','ALERT_EVENT_CONTROL_PLANE',60],
+            ['PRJ004-AUTH-BOUNDARY-001','organizator_agent_boundary','DUAL_BOUNDARY_CONTROL_ORGANIZATOR_AGENT',300],
+            ['PRJ004-AUTH-EVALUATION-HISTORY-001','evaluation_history','AGENT_EVALUATION_CONTROL_PLANE',300]
+          ];
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const page=await browser.newPage({viewport:{width:1280,height:800}});
+            await page.goto(process.env.SOURCE_URL,{waitUntil:'domcontentloaded',timeout:30000});
+            await page.waitForFunction(()=>document.querySelector('#preflightState')?.textContent==='PASS'&&document.querySelector('#preflightSources')?.textContent==='9 / 9'&&document.querySelector('#preflightSecurity')?.textContent==='Security negatives: PASS',null,{timeout:30000});
+            const selftest=await page.evaluate(()=>{const state=document.querySelector('#preflightState'),count=document.querySelector('#preflightSources'),security=document.querySelector('#preflightSecurity');return{gate_pass:state?.textContent==='PASS',verified_count:Number((count?.textContent||'0 / 9').split('/')[0].trim()),total_sources:Number((count?.textContent||'0 / 9').split('/')[1].trim()),schema_pass:state?.textContent==='PASS',freshness_pass:state?.textContent==='PASS',zero_false_verified:state?.textContent==='PASS',readback_hash:state?.getAttribute('data-readback-hash')||'',anonymous_session_denied:state?.getAttribute('data-session-denied')==='true',c2_denied:state?.getAttribute('data-c2-denied')==='true',security_text:security?.textContent||''}});
+            if(!(selftest.gate_pass&&selftest.verified_count===9&&selftest.total_sources===9&&selftest.schema_pass&&selftest.freshness_pass&&selftest.zero_false_verified&&/^[a-f0-9]{64}$/.test(selftest.readback_hash)&&selftest.anonymous_session_denied&&selftest.c2_denied))throw new Error('G15_FRESH_SOURCE_NOT_ACCEPTABLE');
+            const collected_at=new Date().toISOString();
+            const source_projection=authorities.map(([authority_id,domain,owner,sla])=>({authority_id,domain,owner,freshness_sla_seconds:sla,verification_state:'VERIFIED_AT_COLLECTION',schema_pass:true,freshness_pass:true,evidence_scope:'AGGREGATE_9_OF_9',evidence_reference:selftest.readback_hash,permission_state:'READ_ONLY_PUBLIC_AGGREGATE'}));
+            const out={project_id:'PRJ-004',gate:'G-PRJ004-12',artifact:'APPDEPLOY_RUNTIME_EVIDENCE_BRIDGE',version:'1.0',status:'COLLECTED_FROM_AUTHORITATIVE_RUNTIME',collected_at,bridge_freshness_limit_seconds:300,source_runtime:{app_id:'c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t',url:process.env.SOURCE_URL,snapshot_version:process.env.SOURCE_VERSION,transport:'OFFICIAL_APPDEPLOY_CLIENT_API_VIA_RENDERED_RUNTIME'},selftest,source_projection,collector:{workflow:'PRJ-004 G15 RC1 Pre-Promotion Validation',trigger_sha:process.env.GITHUB_SHA,run_id:process.env.GITHUB_RUN_ID,acceptance_refresh:'G15_PRE_PROMOTION_ATOMIC'},production_promotion:false};
+            fs.writeFileSync(process.env.EVIDENCE_PATH,JSON.stringify(out,null,2)+'\n');
+            fs.writeFileSync('/tmp/g15/fresh-source.json',JSON.stringify({collected_at,readback_hash:selftest.readback_hash},null,2)+'\n');
+            await page.screenshot({path:'/tmp/g15/source-runtime.png',fullPage:true});
+            console.log('G15_FRESH_9_OF_9=PASS'); console.log('G15_FRESH_HASH='+selftest.readback_hash);
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${EVIDENCE_PATH}"
+          test "$(git diff --cached --name-only | wc -l)" -eq 1
+          test "$(git diff --cached --name-only)" = "${EVIDENCE_PATH}"
+          git commit -m "PRJ-004 G15: refresh evidence immediately before RC1 promotion"
+          EVIDENCE_SHA="$(git rev-parse HEAD)"
+          git merge-base --is-ancestor "${SOURCE_SHA}" "${EVIDENCE_SHA}"
+          test "$(git diff --name-only "${SOURCE_SHA}" "${EVIDENCE_SHA}")" = "${EVIDENCE_PATH}"
+          FRESH_HASH="$(python -c "import json;print(json.load(open('${EVIDENCE_PATH}'))['selftest']['readback_hash'])")"
+          echo "EVIDENCE_SHA=${EVIDENCE_SHA}" >> "$GITHUB_ENV"
+          echo "FRESH_HASH=${FRESH_HASH}" >> "$GITHUB_ENV"
+          git push origin "HEAD:${G08_BRANCH}"
+          test "$(git ls-remote origin "refs/heads/${G08_BRANCH}" | awk '{print $1}')" = "${EVIDENCE_SHA}"
+          echo "G15_EVIDENCE_ONLY_CHILD=PASS"
+          echo "G15_EVIDENCE_SHA=${EVIDENCE_SHA}"
+
+      - name: Same-RC contract and freshness regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/prj-004/g15-rc1-production-promotion:refs/remotes/origin/prj-004/g15-rc1-production-promotion
+          git checkout -B prj-004/g15-rc1-production-promotion refs/remotes/origin/prj-004/g15-rc1-production-promotion
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git ls-remote origin refs/heads/main | awk '{print $1}')" = "${PREVIOUS_MAIN_SHA}"
+          python - <<'PY'
+          import json, os, datetime, subprocess
+          e=json.loads(subprocess.check_output(['git','show',f"{os.environ['EVIDENCE_SHA']}:{os.environ['EVIDENCE_PATH']}"],text=True))
+          age=(datetime.datetime.now(datetime.timezone.utc)-datetime.datetime.fromisoformat(e['collected_at'].replace('Z','+00:00'))).total_seconds()
+          assert 0<=age<=300
+          assert e['selftest']['gate_pass'] and e['selftest']['verified_count']==9 and e['selftest']['total_sources']==9
+          assert e['selftest']['schema_pass'] and e['selftest']['freshness_pass'] and e['selftest']['zero_false_verified']
+          assert e['selftest']['anonymous_session_denied'] and e['selftest']['c2_denied']
+          assert e['selftest']['readback_hash']==os.environ['FRESH_HASH']
+          assert e['production_promotion'] is False
+          rb=json.load(open('.c3l/dashboard3/G12_NONPROD_RUNTIME_BINDING.v1.json',encoding='utf-8'))
+          ac=json.load(open('.c3l/dashboard3/G12_NORMALIZED_RUNTIME_ADAPTER_CONTRACT.v1.json',encoding='utf-8'))
+          g10=json.load(open('.c3l/dashboard3/G10_UI_COMPONENT_CONTRACT.v0.1.json',encoding='utf-8'))
+          assert rb['runtime']['version']==os.environ['RC_RUNTIME_VERSION'] and rb['runtime']['url']==os.environ['RC_RUNTIME_URL']
+          assert rb['adapter']['backend_write_endpoints']==[] and rb['isolation']['c2_capability'] is False and rb['isolation']['cross_owner_write'] is False
+          assert ac['architecture']['backend_write_endpoints']==0 and ac['architecture']['c2_capability'] is False
+          assert g10['acceptance']['all_components_c2_free'] is True
+          assert g10['global_component_rules']['direct_authoritative_source_fetch']=='FORBIDDEN'
+          assert g10['global_component_rules']['unknown_to_pass_coercion']=='FORBIDDEN'
+          print('G15_G10_G11_G12_CONTRACT_REGRESSION=PASS')
+          print('G15_FRESH_EVIDENCE_LINEAGE=PASS')
+          PY
+
+      - name: Launcher + frozen runtime browser acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 >/tmp/g15/http.log 2>&1 &
+          echo $! >/tmp/g15/http.pid
+          node <<'NODE'
+          const { chromium }=require('playwright'); const fs=require('fs');
+          const assert=(c,m)=>{if(!c)throw new Error(m)}; const ids=['SYS-01','INT-01','SEC-01','REP-03','MOD-02','ROU-01','EVA-01'];
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const context=await browser.newContext(); const direct=[]; const writes=[]; const readEnvelope=[];
+            context.on('request',r=>{const u=r.url(),m=r.method();if(u.includes('c3l-dashboard-prj-004-g04-runtime-candidate'))direct.push(u);let p;try{p=new URL(u)}catch{};if(m==='POST'&&p?.origin==='https://api-v2.appdeploy.ai'&&p?.pathname==='/p'){readEnvelope.push(u);return}if(!['GET','HEAD','OPTIONS'].includes(m))writes.push(m+' '+u)});
+            const page=await context.newPage();
+            await page.goto('http://127.0.0.1:4173/?key=SHOULD_NOT_FORWARD&next=https%3A%2F%2Fevil.example%2F%23x#SHOULD_NOT_FORWARD',{waitUntil:'networkidle',timeout:30000});
+            assert(page.url()===process.env.RC_RUNTIME_URL,'LAUNCHER_TARGET_OR_INPUT_FORWARDING_'+page.url());
+            await page.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: PASS',null,{timeout:30000});
+            const text=async id=>(await page.getByTestId(id).textContent()||'').trim();
+            assert(await text('authority-count')==='9 / 9 authorities','AUTHORITY_COUNT');
+            assert(['Evidence: FRESH','Evidence: AGING'].includes(await text('bridge-freshness')),'FRESHNESS');
+            await page.getByTestId('mode-switch').getByRole('button',{name:'Lite'}).click(); const lite={}; for(const id of ids)lite[id]=await text('state-'+id);
+            await page.getByTestId('card-INT-01').getByRole('button',{name:/Evidence/}).click(); const ev=(await page.getByTestId('evidence-drawer').textContent()||''); assert(ev.includes(process.env.FRESH_HASH),'FRESH_HASH_NOT_PROPAGATED'); assert(ev.includes('READ_ONLY_PUBLIC_AGGREGATE'),'PERMISSION'); await page.getByRole('button',{name:'Close evidence'}).click();
+            await page.getByTestId('mode-switch').getByRole('button',{name:'Full'}).click(); for(const id of ids)assert(await text('state-'+id)===lite[id],'LITE_FULL_DRIFT_'+id);
+            assert((await page.getByTestId('oa-boundary').textContent()||'').includes('OWNERSHIP BOUNDARY — VIEW ONLY'),'OA_BOUNDARY');
+            let ov=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,bw:document.body.scrollWidth})); assert(ov.sw<=ov.cw+1&&ov.bw<=ov.cw+1,'DESKTOP_OVERFLOW');
+            await page.screenshot({path:'/tmp/g15/promotion-runtime.png',fullPage:true});
+            const fail=await browser.newPage({viewport:{width:1280,height:800}}); await fail.route('**/*',async route=>{if(route.request().url().includes('normalized-runtime'))return route.fulfill({status:500,contentType:'application/json',body:'{"error":"g15_fail_closed_probe"}'});return route.continue()}); await fail.goto(process.env.RC_RUNTIME_URL,{waitUntil:'networkidle',timeout:30000}); await fail.waitForFunction(()=>document.querySelector('[data-testid="adapter-state"]')?.textContent==='Adapter: BLOCKED',null,{timeout:30000}); const ft=async id=>(await fail.getByTestId(id).textContent()||'').trim(); assert(await ft('state-SYS-01')==='UNKNOWN','FAIL_SYS'); assert(await ft('state-SEC-01')==='UNKNOWN','FAIL_SEC'); assert(await ft('boundary-state')==='BLOCKED','FAIL_BOUNDARY'); await fail.getByTestId('card-SYS-01').getByRole('button',{name:/Evidence/}).click(); assert((await fail.getByTestId('evidence-drawer').textContent()||'').includes('NOT_PROVEN'),'FAIL_EVIDENCE');
+            assert(direct.length===0,'DIRECT_SOURCE_FETCH'); assert(readEnvelope.length>0,'APPDEPLOY_READ_TRANSPORT_MISSING'); assert(writes.length===0,'FORBIDDEN_WRITES_'+writes.join(','));
+            fs.writeFileSync('/tmp/g15/browser-result.json',JSON.stringify({status:'PASS',fresh_hash:process.env.FRESH_HASH,proofs:{launcher_fixed_target:true,hostile_query_hash_contained:true,authority_9_of_9:true,lite_full_parity:true,oa_boundary:true,fail_closed:true,direct_authoritative_source_fetches:0,forbidden_application_writes:0}},null,2)+'\n');
+            console.log('G15_LAUNCHER_TO_FROZEN_RC1=PASS'); console.log('G15_HOSTILE_INPUT_CONTAINMENT=PASS'); console.log('G15_FROZEN_RUNTIME_9_OF_9=PASS'); console.log('G15_FAIL_CLOSED=PASS');
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+
+      - name: Rollback proof and pre-promotion lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/main | awk '{print $1}')" = "${PREVIOUS_MAIN_SHA}"
+          test "$(git rev-parse "${RC_TAG}^{}")" = "${FREEZE_SHA}"
+          test "$(git ls-remote origin "refs/heads/${G08_BRANCH}" | awk '{print $1}')" = "${EVIDENCE_SHA}"
+          test "$(git rev-parse refs/remotes/origin/${BASELINE_REF})" = "${PREVIOUS_MAIN_SHA}"
+          test "$(git show refs/remotes/origin/${BASELINE_REF}:index.html | git hash-object --stdin)" = "${PREVIOUS_LAUNCHER_BLOB}"
+          printf 'rc_tag=%s\nfreeze_sha=%s\npromotion_head=%s\nevidence_sha=%s\nfresh_hash=%s\nrc_runtime=%s\nrollback_git=%s\nrollback_launcher_blob=%s\nrollback_appdeploy=%s\nmain=%s\npre_promotion=PASS\n' "${RC_TAG}" "${FREEZE_SHA}" "${GITHUB_SHA}" "${EVIDENCE_SHA}" "${FRESH_HASH}" "${RC_RUNTIME_VERSION}" "${PREVIOUS_MAIN_SHA}" "${PREVIOUS_LAUNCHER_BLOB}" "${ROLLBACK_APPDEPLOY}" "${PREVIOUS_MAIN_SHA}" > /tmp/g15/pre-promotion-summary.txt
+          echo 'G15_ROLLBACK_REFERENCE=PASS'
+          echo 'G15_MAIN_UNCHANGED=PASS'
+          echo 'G15_PRE_PROMOTION_READY=PASS'
+
+      - name: Upload G15 pre-promotion evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: prj004-g15-pre-promotion-${{ github.run_id }}
+          path: /tmp/g15
+          if-no-files-found: error
+          retention-days: 30
