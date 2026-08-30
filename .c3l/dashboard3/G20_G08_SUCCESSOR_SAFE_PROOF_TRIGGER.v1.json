@@ -1,0 +1,11 @@
+{
+  "project_id": "PRJ-004",
+  "gate": "G-PRJ004-20",
+  "purpose": "Trigger successor-safe G08 proof against current accepted-production authority",
+  "status": "PROOF_TRIGGER_ONLY",
+  "accepted_production_sha_at_trigger": "370a2242d89590a3acdd25b6b861983474370ff9",
+  "legacy_g08_baseline": "b7d46b80a72772ebc16bc557500eb63916a1d63c",
+  "legacy_g08_baseline_role": "HISTORICAL_ONLY_NOT_ACTIVE_AUTHORITY",
+  "production_promotion": false,
+  "ui_runtime_authority_semantic_delta": false
+}
