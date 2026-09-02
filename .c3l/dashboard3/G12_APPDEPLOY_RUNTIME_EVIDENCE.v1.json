@@ -4,7 +4,7 @@
   "artifact": "APPDEPLOY_RUNTIME_EVIDENCE_BRIDGE",
   "version": "1.0",
   "status": "COLLECTED_FROM_AUTHORITATIVE_RUNTIME",
-  "collected_at": "2026-09-02T19:57:31.410Z",
+  "collected_at": "2026-09-02T20:05:34.183Z",
   "bridge_freshness_limit_seconds": 600,
   "source_runtime": {
     "app_id": "c3l-dashboard-prj-004-g04-runtime-candidate-j11l3t",
@@ -19,7 +19,7 @@
     "schema_pass": true,
     "freshness_pass": true,
     "zero_false_verified": true,
-    "readback_hash": "193e0ba5128d156e3522cb52e77a8ff927b985e984b0d24672c1d8c4daa25ac6",
+    "readback_hash": "81625c8ff20eec183880cdf2377e91325b2aab4c393123ca3861f3737e9d4485",
     "anonymous_session_denied": true,
     "c2_denied": true,
     "security_text": "Security negatives: PASS"
@@ -34,7 +34,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "193e0ba5128d156e3522cb52e77a8ff927b985e984b0d24672c1d8c4daa25ac6",
+      "evidence_reference": "81625c8ff20eec183880cdf2377e91325b2aab4c393123ca3861f3737e9d4485",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -46,7 +46,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "193e0ba5128d156e3522cb52e77a8ff927b985e984b0d24672c1d8c4daa25ac6",
+      "evidence_reference": "81625c8ff20eec183880cdf2377e91325b2aab4c393123ca3861f3737e9d4485",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -58,7 +58,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "193e0ba5128d156e3522cb52e77a8ff927b985e984b0d24672c1d8c4daa25ac6",
+      "evidence_reference": "81625c8ff20eec183880cdf2377e91325b2aab4c393123ca3861f3737e9d4485",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -70,7 +70,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "193e0ba5128d156e3522cb52e77a8ff927b985e984b0d24672c1d8c4daa25ac6",
+      "evidence_reference": "81625c8ff20eec183880cdf2377e91325b2aab4c393123ca3861f3737e9d4485",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -82,7 +82,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "193e0ba5128d156e3522cb52e77a8ff927b985e984b0d24672c1d8c4daa25ac6",
+      "evidence_reference": "81625c8ff20eec183880cdf2377e91325b2aab4c393123ca3861f3737e9d4485",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -94,7 +94,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "193e0ba5128d156e3522cb52e77a8ff927b985e984b0d24672c1d8c4daa25ac6",
+      "evidence_reference": "81625c8ff20eec183880cdf2377e91325b2aab4c393123ca3861f3737e9d4485",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -106,7 +106,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "193e0ba5128d156e3522cb52e77a8ff927b985e984b0d24672c1d8c4daa25ac6",
+      "evidence_reference": "81625c8ff20eec183880cdf2377e91325b2aab4c393123ca3861f3737e9d4485",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -118,7 +118,7 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "193e0ba5128d156e3522cb52e77a8ff927b985e984b0d24672c1d8c4daa25ac6",
+      "evidence_reference": "81625c8ff20eec183880cdf2377e91325b2aab4c393123ca3861f3737e9d4485",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     },
     {
@@ -130,14 +130,14 @@
       "schema_pass": true,
       "freshness_pass": true,
       "evidence_scope": "AGGREGATE_9_OF_9",
-      "evidence_reference": "193e0ba5128d156e3522cb52e77a8ff927b985e984b0d24672c1d8c4daa25ac6",
+      "evidence_reference": "81625c8ff20eec183880cdf2377e91325b2aab4c393123ca3861f3737e9d4485",
       "permission_state": "READ_ONLY_PUBLIC_AGGREGATE"
     }
   ],
   "collector": {
     "workflow": "PRJ-004 G12 Collect AppDeploy Runtime Evidence",
-    "head_sha": "54d4624f6c4c57e736593f368d8b2dfc47e7742a",
-    "run_id": "33676345778",
+    "head_sha": "5d29630bbaea62c5c357ea4d57fdc9819c13cf9f",
+    "run_id": "33677148159",
     "acceptance_refresh": "G12_FINAL"
   },
   "production_promotion": false
